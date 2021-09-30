@@ -13,7 +13,10 @@ genres = [
   "Chemistry", # 5
   "History", # 6
   "Math", # 7
-  "Other" # 8
+  "Geography", # 8
+  "Biology", # 9
+  "Science", # 10
+  "Other" # 11
 ]
 
 questions = [
@@ -33,16 +36,16 @@ questions = [
   ["In Minecraft, what block turns into presents on Christmas?", "Chest", 1, 3],
   ["What year was \"Lego Batman: The Videogame\" released?", "2008", 2, 3],
   ["What is Darth Vader's real first name?", "Anakin", 1, 2],
-  ["What is used to store temporare information in a computer?", "RAM", 0, 0],
+  ["What component is used to store temporare information in a computer?", "RAM", 0, 0],
   ["Array indexes in most programming languages starts on...", "0", 1, 0],
   ["A round three-dimensional circle (not flat) is called a...", "sphere", 0, 7],
   ["In Windows, the keybind to close the current window is ALT and...", "F4", 0, 0],
   ["What is the .com top-domain short for?", "commercial", 2, 0],
   ["What data measurement comes after terabyte and is 1000^5 bytes?", "petabyte", 2, 0],
   ["What is Ash's last name in Pokémon?", "Ketchum", 1, 2],
-  ["What is BSOD short for?", "Blue Screen of Death", 1, 0],
+  ["What is Microsoft Window's crash screen called BSOD short for?", "Blue Screen of Death", 1, 0],
   ["What is Python's equivalent to \"null\"?", "None", 1, 0],
   ["What is the default key to open your inventory in Minecraft?", "E", 0, 3],
   ["How many dimensions does the game Terraria have?", "2", 0, 3],
-  ["What does the poster with the construction worker from the first episode of Futurama spell?", "You gotta do what you gotta do", 1, 2]
+  ["What does the poster with the construction worker from the first episode of Futurama say?", "You gotta do what you gotta do", 1, 2]
 ]

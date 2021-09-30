@@ -19,19 +19,19 @@ rarity_chances = [
 ]
 
 rarity_sellfor = [
-  80,
-  400,
+  75,
+  250,
   1500,
-  5000,
-  15000
+  7500,
+  10000
 ]
 
 rarity_emojis = [
-  "<:common:831838270987304971>",
-  "<:Uncommon:831838304554450964>",
-  "<:Rare:831838328067326003>",
-  "<:Legendary:831838354692767775>",
-  "<:God_Rarity:832185423966896159>"
+  "<:raritycommon:891037472992149614>",
+  "<:rarityuncommon:891037946013163560>",
+  "<:rarityrare:891037474304970812>",
+  "<:raritylegendary:891037473721942027>",
+  "<:raritygod:891037473352847360>"
 ]
 
 rarity_colours = [
@@ -365,18 +365,13 @@ tradecards = [
 
 packs = {
   "memes": {
-    "cost": 1400,
+    "cost": 1200,
     "cards": [0, 4, 7, 8, 9, 10, 11, 12, 13, 15, 16, 19, 20, 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 40, 41, 42, 43, 44],
     "description": "Cards of internet culture and memes. They are funny."
   },
   "cats": {
-    "cost": 1600,
+    "cost": 1400,
     "cards": [1, 2, 3, 5, 6, 14, 17, 18, 22, 23, 36, 37, 38, 39],
     "description": "Yes. We have so many cat cards that we have an entire pack for it. Some cats from this pack are actually memes. 100% chance of getting a cat, get one now!"
   },
-  "fanart": {
-    "cost": 700,
-    "cards": [],
-    "description": "Contains cards that resemble people (or animals) here on Study Fam! Fan-art?"
-  }
 }

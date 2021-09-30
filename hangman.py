@@ -36,7 +36,8 @@ words = [
   "snake",
   "pizza",
   "infinite",
-  "paper"
+  "paper",
+  "study"
 ]
 
 
@@ -49,7 +50,7 @@ manimations = [
   "<:shibasad:720968473496518676>",
   "<:facepalm:739540188136734797>",
   "<:blobtired:720960515714711641>",
-  "<:sad_pusheen:720968755441565749>",
+  "<a:goodbye_bush:739540942750613574>",
   "<:PepeKMS:728196877732020255>",
   "<:excusemewtf:730063874606497913>",
   "<:thonkms:728195638134702171>",
