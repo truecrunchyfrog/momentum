@@ -2,16 +2,17 @@
 WARNING!
 Please read this before inspecting any file further:
 This is the full source code for the Momentum bot.
-If you are aware of this, please don't read the source code or any other file in this project. If you however don't have any association with Momentum, feel free to read the code!
+If you are aware of this, please don't abuse the knowledge of the source code or any other file in this project.
 Do not directly fork or distribute the source code or other content of this project for use in another public bot, thank you!
 
-Copyright crunchyfrog 12/2020 - 9/2021
+Copyright crunchyfrog (https://github.com/javaveryhot) Dec 2020 - May 2022
 '''
 
 
-import os, discord, pymongo, time, datetime, asyncio, random, math, requests, sys
-from keep_alive import keep_alive
+import os, pymongo, time, datetime, asyncio, random, math, requests, sys, hashlib, cld3, flag, re
+import discord
 from discord.ext import commands
+from keep_alive import keep_alive
 from helpmenu import helpmenu
 from shopitems import shopitems
 import tradecards
@@ -23,8 +24,10 @@ import trivia
 from prestigelist import prestigelist
 from PIL import Image, ImageFont, ImageDraw
 from deep_translator import GoogleTranslator
+from babel import Locale
 import settings.channels as channels
 import settings.sounds as sounds
+import settings.presets as presets
 import soundcache
 
 all_trivia_questions = []
@@ -45,6 +48,13 @@ anoncol = metadatabase["anon"]
 votecol = metadatabase["votes"]
 starcol = metadatabase["star"]
 botactivitycol = metadatabase["botactivity"]
+studybuddiescol = userdatabase["studybuddies"]
+buddytrackingcol = userdatabase["buddytracking"]
+matchchanscol = metadatabase["matchchans"]
+vcrolescol = metadatabase["vcroles"]
+sessionarchivecol = metadatabase["sessionarchive"]
+weeklystatscol = userdatabase["weekly"]
+foreignlangusagecol = userdatabase["langusage"]
 
 playingtrivia = False
 
@@ -108,13 +118,11 @@ def TakeUserCoins(uid, amount):
 #Leveling and xp
 
 def GetLevelInfo(uid):
-    #xp = (usercol.find_one({"_id": uid}) or {}).get("experience") or 0
-    # Not sure why I did that ^
     xp = GetUserAttr(uid, "experience") or 0
     requiredxp = 0
     i = 0
     while True:
-      reqxplevel = math.floor((i + 5) ** 4)
+      reqxplevel = math.floor(((i + 5) ** 4))#math.floor(((i + 5) ** 3) / 3)
       requiredxp += reqxplevel
       if not xp >= requiredxp:
         progrxp = math.floor(xp - (requiredxp - reqxplevel))
@@ -180,7 +188,18 @@ def debugging_only(reason="Debugging"):
         return True
     return commands.check(check)
 
-
+class WaitTaskMsg:
+  def __init__(self, chan: discord.abc.Messageable, text):
+    self.chan = chan
+    self.text = text
+    self.message = None
+  async def build(self):
+    self.message = await self.chan.send(f"<a:Waiting_for_this_task_to_finish:938200044992102500>  {self.text or 'Please wait...'}")
+  async def dispose(self):
+    if self.message:
+      await self.message.delete()
+    else:
+      raise Exception("Task wait message was never built!")
 
 
 
@@ -264,6 +283,9 @@ bot.remove_command("help")
 def sanitize(string):
     return discord.utils.escape_markdown(string)
 
+def enhash(string):
+    return hashlib.md5(bytes(string, "utf-8")).hexdigest()
+
 def GetTimeString(timeint):
     timestr = ""
     if timeint >= 365 * 24 * 60 * 60:
@@ -332,9 +354,20 @@ async def on_ready():
     lastactivitymsgid = badoc.get("lastmessage")
 
     if None not in [lastactive, lastactivitymsgid]:
-      lastactivitymsg = await bot.get_channel(channels.General).fetch_message(lastactivitymsgid)
-      await lastactivitymsg.delete()
-    activitybackmsg = await bot.get_channel(channels.General).send("Hi! Momentum is back up again.")
+      try:
+        lastactivitymsg = await bot.get_channel(channels.BotCommands).fetch_message(lastactivitymsgid)
+      except discord.errors.NotFound:
+        lastactivitymsg = None
+      if lastactivitymsg is not None:
+        await lastactivitymsg.delete()
+    activitybackmsg = await bot.get_channel(channels.BotCommands).send("\🍰 " + random.choice([
+      "Momentum is back up again.",
+      "Return of the bot!",
+      "I'm here again.",
+      "Thank you for your patience.",
+      "Back to serving.",
+      "I'm back now."
+    ]))
     botactivitycol.update_one({"_id": 0}, {"$set": {"lastactive": time.time(), "lastmessage": activitybackmsg.id}}, upsert=True)
 
     os.system("clear")
@@ -378,14 +411,20 @@ async def on_ready():
     asyncio.get_event_loop().create_task(rb_loop())
     asyncio.get_event_loop().create_task(ic_loop())
     asyncio.get_event_loop().create_task(bc_loop())
-    asyncio.get_event_loop().create_task(cc_loop())
+    asyncio.get_event_loop().create_task(rl_loop())
+    asyncio.get_event_loop().create_task(mc_loop())
+    asyncio.get_event_loop().create_task(ku_loop())
     asyncio.get_event_loop().create_task(LoadTimers())
     await CompareDatabase()
+    await ConfirmVCRoles()
+    if botactivitycol.count_documents({"_id": 1}) > 0:
+      doc = botactivitycol.find_one({"_id": 1})
+      await bot.guilds[0].get_channel(doc.get("reboot_chan")).send(f"Reboot complete. Took {GetTimeString(time.time() - doc.get('timestamp'))}.")
+      botactivitycol.delete_one({"_id": 1})
 
 async def UpdateStatus():
     studycount = studycol.count_documents({})
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f'{studycount} {"people" if studycount != 1 else "person"} study'), status=discord.Status.idle)
-    #await bot.get_channel(broadcastchannels[0]).edit(name="🌼 " + f'{studycount} {"people" if studycount != 1 else "person"} studying')
 
 async def CompareDatabase():
     print("Initializing comparison with database and actual studying members...")
@@ -424,6 +463,7 @@ async def tc_loop():
 
 #trivia
 async def tr_loop():
+    return
     while True:
       await asyncio.sleep(2 * 60 * 60)
       print("Starting trivia!")
@@ -463,25 +503,114 @@ async def bc_loop():
       await asyncio.sleep(1 * 60)
       await UpdateBroadcastTexts()
 
-#check cam on members
-async def cc_loop():
-    while True:
-      await asyncio.sleep(2 * 60)
-      await CheckCamMembers()
-
 async def CheckCamMembers():
-    voicestates = bot.get_channel(884074578228416522).voice_states
+    voicestates = bot.get_channel(channels.VCCamOn).voice_states
     for voicemap in list(voicestates.items()):
       doc = studycol.find_one({"_id": voicemap[0]})
       if doc is not None:
-        if not voicemap[1].self_video and time.time() - doc.get("study_begin") > 5 * 60:
+        if not voicemap[1].self_video and time.time() - doc.get("study_begin") > 60:
           member = bot.guilds[0].get_member(voicemap[0])
           await member.move_to(None)
           try:
-            await member.send("Sorry, you have been kicked from the voice channel because you have been in there for 5 minutes without turning on your camera.")
+            #https://cdn.discordapp.com/attachments/802215570996330517/969318331628810340/New_Project.png
+            embed = discord.Embed()
+            embed.title = "🩴 Kicked from camera channel"
+            embed.description = "You have been kicked from this voice channel for not participating with your camera.\nTo enable your camera, click the `Video` button once you join."
+            embed.colour = 0xc14745
+            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/802215570996330517/969318331628810340/New_Project.png")
+            await member.send(embed=embed)
           except:
             pass
           print("Kicked " + member.name + " from the Cam On voice channel.")
+
+
+#reset leaderboard
+async def rl_loop():
+    while True:
+      await asyncio.sleep(2 * 60)
+      await CheckMonthlyLeaderboardReset()
+
+
+#match channels check
+async def mc_loop():
+    while True:
+      await asyncio.sleep(10 * 60)
+      for expired_chan in matchchanscol.find({"expiration": {"$lt": time.time()}}):
+        matchchanscol.delete_one({"_id": expired_chan.get("_id")})
+        await bot.get_channel(expired_chan.get("channel")).delete()
+      for soon_expiring_chan in matchchanscol.find({"expiration": {"$lt": time.time() + 60 * 60}, "deletion_alert_sent": {"$not": {"$eq": True}}}):
+        matchchanscol.update_one({"_id": soon_expiring_chan.get("_id")}, {"deletion_alert_sent": True})
+        buddy1 = await bot.fetch_user(soon_expiring_chan.get("buddies")[0])
+        buddy2 = await bot.fetch_user(soon_expiring_chan.get("buddies")[1])
+        await bot.get_channel(soon_expiring_chan.get("channel")).send(buddy1.mention + buddy2.mention + "\nThis is a reminder that this channel will be deleted within less than an hour. If you are planning on becoming study buddies I suggest you take the discussion further somewhere else now if you haven't already.\nGood luck!")
+
+#kick users exceeding 6h of study time
+async def ku_loop():
+    while True:
+      await asyncio.sleep(10 * 60)
+      for studying in studycol.find({"study_begin": {"$lt": time.time() - 60 * 60 * 6}}):
+        studying = bot.guilds[0].get_member(studying.get("_id"))
+        if studying.voice:
+          studying.move_to(None)
+          try:
+            await studying.send("**Did you fall asleep?** You have been kicked from the study channel for studying in there for more than 6 hours.\nIf you were actually studying, just ignore this message and rejoin.")
+          except:
+            pass
+
+async def CheckMonthlyLeaderboardReset(force=False):
+    idstr = "reset_leaderboard"
+    delay = 30.5 * 24 * 60 * 60
+    if IsDelayedLoopReady(idstr, delay) or force:
+      UpdateLoopUsed(idstr, delay)
+
+      slmsg = await bot.get_channel(channels.BotCommands).send("Saving the leaderboard here...")
+      await leaderboard(await bot.get_context(slmsg)) # Print the leaderboard in bot commands
+
+      rquery = {
+        "studytokens": {"$gte": 100}
+      }
+      lbdocne = usercol.find(rquery, {"_id": 1, "studytokens": 1})
+      if usercol.count_documents(rquery) == 0:
+        await bot.get_channel(channels.News).send("End of month! Huh, nobody is on the leaderboard!?")
+        return
+      topmemberssorted = lbdocne.sort([("studytokens", -1)])
+      n1mem = None
+      n2mem = None
+      n3mem = None
+      for member in topmemberssorted:
+        member = bot.guilds[0].get_member(member.get("_id"))
+        if member:
+          if not n1mem:
+            n1mem = member
+          elif not n2mem:
+            n2mem = member
+          elif not n3mem:
+            n3mem = member
+            break
+      if not n3mem:
+        return
+      await n1mem.add_roles(discord.utils.get(bot.guilds[0].roles, id=713478276479451206))
+      temprolescol.insert_one({
+        "expires": time.time() + delay,
+        "role": 713478276479451206,
+        "user": n1mem.id
+      })
+      await n1mem.edit(nick="👑 " + n1mem.name)
+      n1reward = 15000
+      runnersupreward = 8000
+      AddUserCoins(n1mem.id, n1reward)
+      AddUserCoins(n2mem.id, runnersupreward)
+      AddUserCoins(n3mem.id, runnersupreward)
+      usercol.update_many({"studytokens": {"$exists": True}}, {"$unset": {"studytokens": ""}})
+
+      embed = discord.Embed()
+      embed.title = "<:book:816522587424817183> Monthly Reset"
+      #embed.description = f"A new month is here and it's time to reset the leaderboard!\n**Congratulations winners!**\nThese people studied the best last month:\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n\nThe winner has received 1 month of gold membership and coins. The 2nd and 3rd leaders earned some coins.\n\nMaybe this month is your chance to study well? Good luck people!\n[Click here]({slmsg.jump_url}) to see the archived first leaderboard page."
+      embed.description = f"✨ A new month is here, so it's time to congratulate the following three who have topped our leaderboard last month and to continue the succession of the throne! <:kingcat:730063415959224320> Thank you for inspiring us this month with your hard work!\n\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n🎉 All hail the new monthly leader {n1mem.mention}! The coin rewards have already been deposited into the accounts of the top 3! <:I_got_money:739540510674256005>\n\nGood job as well to ALL frogs this month for the work done <:catpats:913604825479008326>\nAll the best for the next month, we are looking forward to your company!! <:comfyblob:730063563892195408>\n\nAlso, [click here]({slmsg.jump_url}) to see the full first leaderboard page."
+      embed.colour = 0xaa763f
+
+      newsfeedrole = discord.utils.get(bot.guilds[0].roles, id=844605574032916512)
+      await bot.get_channel(channels.News).send(newsfeedrole.mention + n1mem.mention + n2mem.mention + n3mem.mention, embed=embed)
 
 async def LoadTimers():
     timers = timcol.find()
@@ -493,6 +622,19 @@ async def LoadTimers():
         await member.send(f"<:shibasad:720968473496518676> Sorry! Your timer has come a bit late...\nYou were supposed to get this `{GetTimeString(timelate)}` ago, but because Momentum was down, you did not get it." + (("\nYour message: `" + timer.get("message") + "`") if timer.get("message") != None else ""))
       else:
         asyncio.get_event_loop().create_task(CreateTimer(timer))
+
+async def ConfirmVCRoles():
+    print("Confirming VC roles...")
+    for vcrole in vcrolescol.find():
+      if bot.guilds[0].get_channel(vcrole.get("channel")) is None:
+        try:
+          vcrolescol.delete_one({"_id": vcrole.get("_id")})
+          await bot.guilds[0].get_role(vcrole.get("role")).delete()
+          print("Deleted an obsolete VC role.")
+        except:
+          print("Could not delete VC role.")
+    print("VC roles confirm done.")
+
 
 existingtimers = []
 
@@ -524,7 +666,7 @@ async def UpdateBroadcastTexts(force=False):
       datetimestr = datetime.datetime.now().strftime(f"%H:%M {sunmoonemoji} %d/%m/%Y")
       await bot.get_channel(channels.Broadcasting[0]).edit(name=datetimestr)
       studyingpeople = studycol.count_documents({})
-      await bot.get_channel(channels.Broadcasting[1]).edit(name=f'{"📚" if studyingpeople > 0 else "💀"} {studyingpeople} people {"are" if studyingpeople != 1 else "is"} studying')
+      await bot.get_channel(channels.Broadcasting[1]).edit(name=f'{"👥" if studyingpeople > 0 else "💀"} {studyingpeople} {"people are" if studyingpeople != 1 else "person is"} studying')
 
 def LoadTriviaQuestions():
     #don't update the trivia array if a game is playing. updating it during the trivia game will confuse the trivia and bugs could occur (very small chance, but still)
@@ -599,7 +741,7 @@ async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
       embed.set_author(name=f"Study Fam Trivia: {i + 1} out of {qc}")
       embed.title = question[0]
       author = bot.guilds[0].get_member(question[4]) if len(question) > 4 else None
-      desc = (f"[Community question by {sanitize(author.name)}](https://duckduckgo.com \"Trivia author\")\n" if len(question) > 4 else "") + f"Difficulty: `{trivia.diffs[question[2]]}`\nGenre: `{trivia.genres[question[3]]}`\n*Type the answer!*"
+      desc = (f"[Community question by {sanitize(author.name)}](https://duck.com \"Trivia author\")\n" if len(question) > 4 else "") + f"Difficulty: `{trivia.diffs[question[2]]}`\nGenre: `{trivia.genres[question[3]]}`\n*Type the answer!*"
       embed.description = desc
       embed.colour = discord.Colour.orange()
       qmsg = await channel.send(embed=embed)
@@ -653,7 +795,7 @@ async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
 
 async def CollectTaxes():
     idstr = "collect_taxes"
-    delay = 30 * 24 * 60 * 60
+    delay = 14 * 24 * 60 * 60
     if IsDelayedLoopReady(idstr, delay):
       UpdateLoopUsed(idstr, delay)
       print("COLLECTING TAXES! It has been >30 days since last tax collection.")
@@ -665,7 +807,7 @@ async def CollectTaxes():
         TakeUserCoins(taxpayer["_id"], takecoins)
       print("All members with >8k coins have automatically paid taxes, 20% of their full coin amount.")
       await bot.get_channel(channels.General).send(embed=discord.Embed(
-        description=f"<:blobcute:720968544602554388> It's time for this month's taxes!\nCollected `{totalcoinstaken:,d} coins` in total. ([?](https://discord.com/channels/712808127539707927/713177565849845849/801373465546457138 \"Click to see more information about taxes\"))",
+        description=f"<:cat_cry_thumbsup:855880898208333824> It's time for taxes!\nCollected `{totalcoinstaken:,d} coins` in total. ([?](https://discord.com/channels/712808127539707927/713177565849845849/801373465546457138 \"Click to see more information about taxes\"))",
         colour=discord.Colour.orange()
       ))
 
@@ -678,7 +820,7 @@ async def RemindDisboardBump():
       embed = discord.Embed()
       embed.set_author(name="BUMPING AVAILABLE!")
       embed.title = "<a:CS_Wiggle:856616923915878411> Contribute to Study Fam!"
-      embed.description = "Help the server grow by typing `!d bump`.\n**Due to Disboard changes (since 22 Sep.), you will no longer receive a bump reward.**"
+      embed.description = "Help the server grow by typing `/bump`."
       embed.colour = 0x2f3136
       await bot.get_channel(channels.BotCommands).send(embed=embed)
 
@@ -697,19 +839,66 @@ def UpdateLoopUsed(id, delay):
     loopscol.update_one({"_id": id}, {"$set": {"delay": delay, "last_used": time.time()}}, upsert=True)
 
 
-
-
+last_self_message_hash = ""
+last_self_message_time = 0
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
+      if message.author.id == bot.user.id:
+        global last_self_message_hash, last_self_message_time
+        msg_hash = enhash(str(message.channel.id) + message.content + str(message.embeds[0].description if len(message.embeds) > 0 else ""))
+        if msg_hash == last_self_message_hash and time.time() - last_self_message_time < 1:
+          # Identical message detected, check if there are two instances
+          # Theoretically, both instances should get here at (approximately) the same time
+          await message.channel.send("If you see this (which you do), it seems that I have a clone that repeats whatever I do: luckily I am self-observant. To fix this, I am now rebooting. This will probably take less than 30 seconds before I'm back but right now I am unavailable. By the time that you have read this message I will probably be back up so you're not just sitting there... waiting...\nI am sorry for this short inconvenience.\nWoah! If you're a fast reader and already got this far down before I'm back (or if I have a bad comprehension of time, or if I am unusually slow to wake up), you've got to see this. This is me finishing off this clone:\nhttps://tenor.com/view/cat-jumping-fail-crazy-gif-23800115")
+          os.system("busybox reboot")
+          # Rebooting will apparently effectively kill the clone?
+          sys.exit()
+        last_self_message_hash = msg_hash
+        last_self_message_time = time.time()
       if message.author.id == 302050872383242240 and len(message.embeds) > 0 and "Bump done" in message.embeds[0].description:
+        #if someone bumbed
         UpdateLoopUsed("remind_bump", 2 * 60 * 60)
+        embed = discord.Embed()
+        embed.description = "Thank you for helping out the server!"
+        embed.colour = 0x2a7c52
+        embed.set_thumbnail(url="https://icons.iconarchive.com/icons/icehouse/smurf/32/Jokeys-present-icon.png")
+        await message.channel.send(embed=embed)
       return
     if isinstance(message.channel, discord.channel.DMChannel):
       return
+    
+    if message.content.endswith("-ds"):
+      await asyncio.sleep(15)
+      await message.delete()
 
     c = message.content
+    if "@everyone" in c or "@here" in c and "https://" in c or "http://" in c:
+      last_suspicious_message = GetUserAttr(message.author.id, "last_suspicious_message")
+      if last_suspicious_message is None or last_suspicious_message[2] < time.time() - 60 * 60 * 24:
+        SetUserAttr(message.author.id, "last_suspicious_message", [enhash(c), [message.channel.id, message.id], time.time()])
+      elif enhash(c) == last_suspicious_message[0]:
+        RemUserAttr(message.author.id, "last_suspicious_message")
+        chan_msg = last_suspicious_message[1]
+        try:
+          old_message = await bot.get_channel(chan_msg[0]).fetch_message(chan_msg[1])
+          await old_message.delete()
+          await message.delete()
+        except:
+          pass
+        try:
+          member_role = discord.utils.get(bot.guilds[0].roles, id=713466849148534814)
+          full_access_role = discord.utils.get(bot.guilds[0].roles, id=783777725487382570)
+          await message.author.remove_roles(member_role, full_access_role)
+        except:
+          pass
+        try:
+          await bot.get_channel(channels.StaffOnly).send(f"**CAUTION!** {message.author.mention} (`{message.author.id}`, `{message.author.name}#{message.author.discriminator}`) has been detected for potential spam, they sent the following message multiple times:\n\n```\n{sanitize(c)}\n```\n\nThey have been removed the default roles and have to get verified again to gain access to the channels again. The messages have also been deleted.")
+          await message.author.send("**SPAM DETECTION!** You have been temporarily removed (not banned yet) from the server while the staff review the infraction. Please open a ticket to explain if you've done so accidentally.")
+        except:
+          pass
+        return
     if message.channel.id == 748862262793732160 and len(message.attachments) == 1:
       await NewPrestige(message.author.id, "nicememe")
     lc = c.lower()
@@ -717,24 +906,37 @@ async def on_message(message):
       async with message.channel.typing():
         await asyncio.sleep(random.randint(4, 8))
         await message.reply(random.choice(["Sleep well {0}! We'll see you later.", "It's been a long day. You deserve a good sleep {0}!", "Well done {0}! Good night!", "Good night mate {0}!", "See you tomorrow {0}!", "Good night {0}! Sleep well!", "You have done well today, as everyday!", "Today was a big day, tomorrow is a big day. You should get some good sleep!", "We all wish you a good night {0}!"]).format(sanitize(message.author.name)))
-    if "beaver" in lc and len(c) < 35:
-      await message.reply("https://tenor.com/view/baby-beaver-cute-gif-9929643", delete_after=11)
+    if len(c) < 35:
+      if "beaver" in lc:
+        await message.reply("https://tenor.com/view/baby-beaver-cute-gif-9929643", delete_after=11)
+      if "horse" in lc:
+        await message.reply("https://tenor.com/view/horse-riding-truck-skid-action-gif-13177019", delete_after=6)
+      if "i hate you" in lc:
+        await message.reply("https://tenor.com/view/19dollar-fortnite-card-among-us-amogus-sus-red-among-sus-gif-20549014", delete_after=2)
+      if "a blast" in lc:
+        await message.reply("https://tenor.com/view/duck-swing-playground-cute-gif-16385102", delete_after=6)
+      if "turtle" in lc:
+        await message.reply("https://tenor.com/view/turtle-gif-7551142", delete_after=3)
+      if "that's epic" in lc or "thats epic" in lc:
+        await message.reply("https://tenor.com/view/frog-look-stare-gif-15464672", delete_after=2)
+      if "amogass" in lc:
+        await message.reply("https://tenor.com/view/amongus-amongass-ass-gif-22654532", delete_after=5)
+      if "bastu" in lc:
+        await message.reply("https://tenor.com/view/capybara-bucket-sit-spa-capybara-bucket-gif-23305453", delete_after=16)
+    for mentioned in message.mentions:
+      if mentioned.id == 195258903368302592:
+        if message.author.id == 645627385542344704:
+          await message.author.send("<:ping:926132029697982564>")
+        else:
+          await message.add_reaction("<:ping:926132029697982564>")
     if (("mom" in lc or "beaver" in lc) and len(lc) < 80 and ("you" in lc or " u " in lc or "u'" in lc or " ur " in lc or " go " in lc) and ("work" in lc or "slave" in lc or "poor" in lc or "suck" in lc or "bad" in lc or "i hate" in lc or "terrible" in lc or "stink" in lc or "die" in lc or "ugly" in lc or "annoying" in lc)):
+      SetUserAttr(message.author.id, "toxicity", time.time())
       await message.channel.send("You gotta do what you gotta do.")
       return
     if lc == "no regrets":
       await SelfDestruction(message)
-    if message.reference is not None:
-      mid = message.reference.message_id
-      anondoc = anoncol.find_one({"_id": mid})
-      if anondoc is not None and anondoc.get("author") != message.author.id:
-        anonauthor = bot.guilds[0].get_member(anondoc.get("author"))
-        try:
-          await anonauthor.send(sanitize(message.author.name) + " replied to your anonymous message: " + message.jump_url)
-        except:
-          pass
-    if message.content == f"<@!{bot.user.id}>":
-      await message.channel.send("For help, type `mom help`.")
+    if message.content == f"<@{bot.user.id}>":
+      await message.reply("For help, type `mom help`.")
     if lc.startswith("pls ") and message.channel.id == channels.BotCommands:
       await message.reply(f"Please use Dank Memer commands in {bot.get_channel(channels.DankMemer).mention}.")
     if not lc.startswith("mom "):
@@ -743,12 +945,83 @@ async def on_message(message):
       # give study tokens for sending messages in "music study chat"
       if message.channel.id == 722880141134397460 and random.randrange(0, 2) == 0:
         AddUserTokens(message.author.id, 1)
+
+      if message.reference is not None: # Reply to anon
+        mid = message.reference.message_id
+        anondoc = anoncol.find_one({"_id": mid})
+        if anondoc is not None and anondoc.get("author") != message.author.id:
+          anonauthor = bot.guilds[0].get_member(anondoc.get("author"))
+          try:
+            await anonauthor.send(sanitize(message.author.name) + " replied to your anonymous message: " + message.jump_url)
+          except:
+            pass
+
+      # Language detection
+
+      if len(lc) >= 5 and len(lc) <= 300 and len(re.sub(r"<:\w*:\d*>", "", lc)) > 6 and not lc.startswith("https://"):
+        lang_detection = cld3.get_language(lc)
+        if lang_detection.language != "en" and lang_detection.is_reliable and lang_detection.probability > 0.95 and lang_detection.proportion > 0.75 and foreignlangusagecol.count_documents({"content": enhash(lc), "date": {"$gt": time.time() - 60 * 60 * 5}}) == 0 and lc != GoogleTranslator(source=lang_detection.language, target="en").translate(lc):
+          lang_ban = GetUserAttr(message.author.id, "foreign_lang_ban")
+          if lang_ban is not None and lang_ban[0] == lang_detection.language and lang_ban[1] > time.time():
+            await message.channel.send(message.author.mention + " Your message has been deleted because you have been temporarily disallowed from using this language in this server for a while.", delete_after=15)
+            await message.delete()
+          else:
+            foreignlangusagecol.insert_one({
+              "user": message.author.id,
+              "lang": lang_detection.language,
+              "date": time.time(),
+              "content": enhash(lc)
+            })
+            lang_display_name = "[unknown language]"
+            try:
+              lang_display_name = Locale.parse(lang_detection.language).get_display_name("en_US")
+            except:
+              pass
+            excession_border = time.time() - 60 * 60
+            if foreignlangusagecol.count_documents({"user": message.author.id, "lang": lang_detection.language, "date": {"$gt": excession_border}}) > 10:
+              SetUserAttr(message.author.id, "foreign_lang_ban", [lang_detection.language, time.time() + 60 * 60 * 12])
+              embed = discord.Embed()
+              embed.title = "Excessive usage of " + lang_display_name
+              embed.description = f"Hello, {message.author.name}!\nI have detected an excessive usage of the language {lang_display_name} from you.\nThis is a humble reminder of our first rule; *refrain from using languages other than English*.\nPlease consider speaking in English instead or taking your conversation privately, to make the whole server feel involved and not only those who speak {lang_display_name}.\n<:CryingCat:981309587779121212> **Messages you send during the next 12 hours in {lang_display_name} will now be deleted to prevent recursive behaviour.**\nThank you in advance!"
+              embed.colour = 0xba8c55
+              try:
+                await message.author.send(embed=embed)
+              except:
+                await message.reply(embed=embed)
+            foreignlangusagecol.delete_many({"user": message.author.id, "date": {"$lt": excession_border}})
+            flag_remapping_values = {
+              "sv": "se",
+              "zh": "cn",
+              "mr": "in",
+              "el": "gr",
+              "ca": "es"
+            }
+            flag_code = lang_detection.language if not lang_detection.language in flag_remapping_values else flag_remapping_values[lang_detection.language]
+            flag_emoji = flag.flag(flag_code)
+            try:
+              await message.add_reaction(flag_emoji)
+            except:
+              flag_emoji = "🏁"
+              await message.add_reaction(flag_emoji)
+            def check(reaction, user):
+              return user.id != bot.user.id and reaction.message.id == message.id and reaction.emoji == flag_emoji
+            try:
+              reaction, user = await bot.wait_for("reaction_add", timeout=60, check=check)
+            except asyncio.TimeoutError:
+              await message.clear_reaction(flag_emoji)
+            else:
+              await message.clear_reaction(flag_emoji)
+              await message.reply(f"*Translated from {lang_display_name}:*\n`" + GoogleTranslator(source=lang_detection.language, target="en").translate(lc) + "`" + (f"\n||{lang_detection}||" if lc.startswith(";") else ""), mention_author=False)
+    elif message.channel.id not in channels.CommandUsage and not message.author.id in whitelist.admins:
+      await message.channel.send(message.author.mention + " **Sorry, but you may not use commands in this channel!** Please use a dedicated channel instead.\nDo you believe that this is faulty? Contact us.", delete_after=10)
+      return
+
     if message.channel.id == 725451170604384308 and not (GetUserAttr(message.author.id, "dca") or False):
       await message.delete()
       conf = await message.channel.send(message.author.mention + " You sure you wanna chat here?")
       await conf.add_reaction("👍")
       def check(reaction, user):
-        return user.id == message.author.id and reaction.message.channel.id == message.channel.id and reaction.emoji == "👍"
+        return user.id == message.author.id and reaction.message.id == message.id and reaction.emoji == "👍"
       try:
         reaction, user = await bot.wait_for("reaction_add", timeout=30, check=check)
       except asyncio.TimeoutError:
@@ -758,11 +1031,14 @@ async def on_message(message):
         await conf.delete()
         SetUserAttr(message.author.id, "dca", True)
         await message.channel.send("Great, now you can chat here!", delete_after=10)
+    if time.time() - (GetUserAttr(message.author.id, "toxicity") or 0) < 3 * 60:
+      await message.add_reaction("😤")
     await bot.process_commands(message)
 
 
 @bot.event
 async def on_member_join(member):
+    await MemberCheck(member)
     invitelist = invcol.find()
     servinv = await bot.guilds[0].invites()
     for inv in invitelist:
@@ -782,21 +1058,41 @@ async def on_member_join(member):
           continue
         memberinvlist.append(member.id)
         SetUserAttr(inviter.id, "invite_list", memberinvlist)
-        AddUserCoins(inviter.id, 2000)
+        AddUserCoins(inviter.id, 300)
         try:
-          await inviter.send("Thank you for inviting " + sanitize(member.name) + " to Study Fam! You have been given <:famcoin2:845382244554113064> `2,000`.")
+          await inviter.send("Thank you for inviting " + sanitize(member.name) + " to Study Fam! You have been given <:famcoin2:845382244554113064> `300`.")
         except:
           pass
         # don't break the loop here, to allow previous invites to be cleared as well, if they were removed while the bot was offline
     print(member.name + " joined the server!")
     embed = discord.Embed()
     embed.set_thumbnail(url=f"https://cdn.discordapp.com/avatars/{member.id}/{member.avatar}.png?size=64")
-    embed.description = f"\n{random.choice(joinmessages.emojis)} " + (random.choice(joinmessages.messages).format(f"[{sanitize(member.name)}#{member.discriminator}](https://discord.com/channels/@me/{member.id} \"That's great!\")"))
+    embed.description = f"\n{random.choice(joinmessages.emojis)} " + (random.choice(joinmessages.messages).format(f"[{sanitize(member.name)}#{member.discriminator}](https://discord.com/channels/@me/{member.id} \"That's great!\")")) + f"\n\nMember #{bot.guilds[0].member_count}"
     embed.colour = 0x2f3136
     await bot.get_channel(channels.General).send(embed=embed, delete_after=5 * 60)
 
 @bot.event
+async def on_member_update(before, after):
+    await asyncio.sleep(1)
+    await MemberCheck(after)
+
+async def MemberCheck(member):
+    old_nick = member.nick or member.name
+    if not re.match(r".*([A-z]|[0-9])([A-z]|[0-9]).*", old_nick):
+      funny_prefixes = ["Studying", "Study", "Fantastic", "Great", "Awesome", "Nice", "Crunchy", "Crazy", "Grumpy", "Fabulous", "Fancy", "Happy", "Sad", "Friendly", "Laughing", "Crying", "Good", "Sobbing", "Koala"]
+      funny_suffixes = ["Frog", "Turtle", "Dragon", "Fox", "Gru", "Grandma", "Student", "Orange", "Kiwi", "Banana", "Rat", "Fam"]
+      new_nick = random.choice(funny_prefixes) + random.choice(funny_suffixes)
+      await member.edit(nick=new_nick)
+      print(f"Changed nickname that does not meet requirements! ({old_nick} -> {new_nick})")
+      try:
+        await member.send(f"Hello there! I've run a check and it appears that your nickname in the Study Fam server did not match our requirement of 2 consecutive Latin letters. A placeholder has thus been temporarily assigned. You are encouraged to change it as long as they meet the requirement!\n\nYour old nickname that did not meet the requirements was `{old_nick}`,\nand your new placeholder nickname is `{new_nick}`.")
+      except:
+        pass
+
+@bot.event
 async def on_raw_reaction_add(payload):
+    if payload.member.bot:
+      return
     if votecol.count_documents({"message": payload.message_id, "active": True}) > 0 and payload.member.id != bot.user.id:
       # Someone reacted to a message which is a vote
       message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
@@ -844,6 +1140,7 @@ async def on_raw_reaction_add(payload):
           colour=0x721806
         ))
       except:
+        await bot.get_channel(channels.BotCommands).send(f"{payload.member.mention} You tried to star a message, but I couldn't deliver the message to you. Please enable \"Direct Messages\" in your privacy settings, just temporarily if you want, while you do this.")
         return
       def check(m):
         return m.author.id == payload.member.id and m.channel == payload.member.dm_channel
@@ -861,13 +1158,16 @@ async def on_raw_reaction_add(payload):
               embed.set_author(name=message.author.name, icon_url=message.author.avatar_url_as(size=32))
               sendfiles = []
               if len(message.attachments) == 0:
-                embed.description = message.content or "..."
+                content = message.content
+                if len(message.embeds) > 0:
+                  content = message.embeds[0].description
+                embed.description = content or "..."
               else:
                 for attc in message.attachments:
                   sendfiles.append(await attc.to_file())
                 ac = len(message.attachments)
                 embed.description = str(ac) + " attachment" + ("s" if ac != 1 else "")
-              embed.description += f"\n\n[Hop to the source]({message.jump_url}) (originally posted {GetTimeString(time.time() - message.created_at.timestamp())} ago)"
+              embed.description += f"\n\n[\🐸 Hop to the source]({message.jump_url} \"More like hop to the pond but this I guess this may be interpreted better\") (posted <t:{int(message.created_at.timestamp())}:R> in {message.channel.mention})"
               embed.colour = 0xdd7863
               embed.set_footer(text=f"Starred by: {payload.member.name}#{payload.member.discriminator}")
               await bot.get_channel(channels.BeaverBoard).send(embed=embed, files=sendfiles)
@@ -878,7 +1178,7 @@ async def on_raw_reaction_add(payload):
             await payload.member.send(f"Uh oh, you don't have enough coins to star a message! It costs `{starcost}` but you only have `{GetUserCoins(payload.member.id)}` coins.")
         else:
           await payload.member.send("The message was not starred.")
-    if payload.member.id == 482459199213928459:
+    if payload.member.id == 482459199213928459 and False:
       message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
       shouldAdd = True
       for reaction in message.reactions:
@@ -891,6 +1191,31 @@ async def on_raw_reaction_add(payload):
       else:
         await message.remove_reaction(payload.emoji, bot.user)
       await message.remove_reaction(payload.emoji, payload.member)
+    if payload.emoji.name == "🗑️" and matchchanscol.count_documents({"message": payload.message_id}) > 0:
+      chan = bot.get_channel(payload.channel_id)
+      await (await chan.fetch_message(payload.message_id)).remove_reaction(payload.emoji, payload.member)
+      cmsg = await chan.send(payload.member.mention + "\nAre you sure that you want to dispose this channel now?\nRespond with `yes` or `no`!")
+      responses = ["yes", "no"]
+      def check(m):
+        return m.channel.id == payload.channel_id and m.author.id == payload.member.id and m.content.lower() in responses
+      try:
+        m = await bot.wait_for("message", timeout=30, check=check)
+      except:
+        await cmsg.delete()
+      else:
+        await cmsg.delete()
+        await m.delete()
+        if responses.index(m.content.lower()) == 0:
+          wmsg = WaitTaskMsg(chan, "The channel is being deleted, please wait...")
+          await wmsg.build()
+          await asyncio.sleep(10)
+          await chan.delete()
+          matchchanscol.delete_one({"message": payload.message_id})
+        else:
+          await chan.send("Canceled, the channel has not been deleted!", delete_after=10)
+    if payload.emoji.name == "🩲" and payload.member.id in whitelist.admins:
+      chan = bot.get_channel(payload.channel_id)
+      await (await chan.fetch_message(payload.message_id)).delete()
 
 
 lasterror = 0
@@ -901,7 +1226,7 @@ async def on_command_error(ctx, error):
       await ctx.send("Expected a member.")
     elif isinstance(error, commands.CommandNotFound):
       await ctx.send(embed=discord.Embed(
-        description=f"<a:thisisfine:856617800395259904> Sorry! No such command: [`{sanitize(ctx.invoked_with)}`](https://duckduckgo.com) could be found.\nRun `mom help` and see if you can find what you are looking for.\nYou can also ask staff to help you find it.",
+        description=f"<a:thisisfine:856617800395259904> Sorry! No such command: [`{sanitize(ctx.invoked_with)}`](https://duck.com) could be found.\nRun `mom help` and see if you can find what you are looking for.\nYou can also ask staff to help you find it.",
         colour=0x2f3136
       ))
     elif isinstance(error, NotAdmin):
@@ -935,7 +1260,7 @@ async def on_command_error(ctx, error):
         sys.exit()
       lasterror = time.time()
       embed = discord.Embed()
-      embed.description = f"<a:thisisfine:856617800395259904> Sorry, {sanitize(ctx.author.name)}!\nAn error occured while trying to run your command: `{sanitize(ctx.invoked_with)}`.\nPing the developer by clicking the check icon below.\n**Debug information:**\n```\n{error}```"
+      embed.description = f"<a:thisisfine:856617800395259904> Sorry!\nAn error occured while trying to run your command: `{sanitize(ctx.invoked_with)}`.\nAlert the developer by clicking the check icon below.\n**Debug information:**\n```\n{error}```"
       embed.colour = 0x2f3136
       embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/861542071905943562/890874808412291092/image.png")
       emsg = await ctx.send(embed=embed)
@@ -945,7 +1270,7 @@ async def on_command_error(ctx, error):
       try:
         reaction, user = await bot.wait_for("reaction_add", timeout=60, check=check)
       except asyncio.TimeoutError:
-        await emsg.remove_reaction("<:Check:783760461556350986>")
+        await emsg.remove_reaction("<:Check:783760461556350986>", bot.user)
       else:
         await emsg.clear_reaction("<:Check:783760461556350986>")
         await emsg.remove_reaction("<:Check:783760461556350986>", ctx.author)
@@ -955,18 +1280,41 @@ async def on_command_error(ctx, error):
 
 @bot.event
 async def on_voice_state_update(member, before, after):
+    if member.bot:
+      return
     using_cam = False
-    if member.voice and (member.voice.self_stream or member.voice.self_video):
+    if member.voice is not None and (member.voice.self_stream or member.voice.self_video):
       using_cam = True
     # Start studying
-    if (not before.channel or before.channel.id in channels.NotForStudying) and after.channel and studycol.find_one({"_id": member.id}) is None and not after.channel.id in channels.NotForStudying and not member.bot:
+    if (not before.channel or before.channel.id in channels.NotForStudying) and after.channel and studycol.count_documents({"_id": member.id}) == 0 and not after.channel.id in channels.NotForStudying:
       if len(after.channel.members) >= 11: # 11 because this member is included into the count as well
         await NewPrestige(member.id, "studyarmy")
-      studycol.insert_one({"_id": member.id, "study_begin": time.time(), "cam_usage": 0})
-      await PlayJoinStudySound(member.id, after.channel)
-    if studycol.find_one({"_id": member.id}) is not None and using_cam:
+      init_relationships = {}
+      for relation in studycol.find():
+        init_relationships[str(relation.get("_id"))] = time.time()
+      studycol.update_many({}, {"$set": {f"relationships.{member.id}": time.time()}})
+      studycol.insert_one({
+        "_id": member.id,
+        "study_begin": time.time(),
+        "cam_usage": 0,
+        "relationships": init_relationships
+      })
+      asyncio.get_event_loop().create_task(PlayJoinStudySound(member.id, after.channel))
+      if GetUserAttr(member.id, "buddy_tracking_consent") is None:
+        asyncio.get_event_loop().create_task(ConfirmBuddyTrackingConsent(member))
+      if after.channel.id == channels.VCCamOn and GetUserAttr(member.id, "cam_on_aware") != True:
+        SetUserAttr(member.id, "cam_on_aware", True)
+        embed = discord.Embed()
+        embed.title = "Important context about this voice channel"
+        embed.description = f"Hey, {member.name}!\nYou joined the Cam On study channel.\nThis study channel is special as you have to enable your camera to be here.\nIf you don't want to, you may use any another study channel instead.\nUnfortunately you will be kicked from the channel in 5 minutes if you don't enable your camera by then."
+        embed.colour = 0xbc9a4f
+        try:
+          await member.send(embed=embed)
+        except:
+          await bot.get_channel(channels.BotCommands).send(member.mention, embed=embed)
+    if studycol.count_documents({"_id": member.id}) > 0 and using_cam:
       studycol.update_one({"_id": member.id}, {"$set": {"cam_usage_begin": time.time()}})
-    if not using_cam and studycol.find_one({"_id": member.id, "cam_usage_begin": {"$exists": True}}) is not None:
+    if not using_cam and studycol.count_documents({"_id": member.id, "cam_usage_begin": {"$exists": True}}) > 0:
       cam_usage_begin = studycol.find_one({"_id": member.id}).get("cam_usage_begin")
       studycol.update_one({"_id": member.id}, {
         "$unset": {"cam_usage_begin": ""},
@@ -975,21 +1323,125 @@ async def on_voice_state_update(member, before, after):
     # Stop studying
     if before.channel and (not after.channel or after.channel.id in channels.NotForStudying) and studycol.count_documents({"_id": member.id}) > 0:
       await StopStudying(member.id)
+    if not member.bot:
+      for chan in [before.channel, after.channel]:
+        if chan is None:
+          continue
+        if vcrolescol.count_documents({"channel": chan.id}) == 0:
+          if len(chan.members) >= 2 and not chan in channels.NotForStudying:
+            role = await bot.guilds[0].create_role(name=chan.name, colour=0x84b500, mentionable=True)
+            vcrolescol.insert_one({
+              "channel": chan.id,
+              "role": role.id
+            })
+            for member in chan.members:
+              if not member.bot:
+                await member.add_roles(role)
+        else:
+          role = bot.guilds[0].get_role(vcrolescol.find_one({"channel": chan.id}).get("role"))
+          if role is None:
+            vcrolescol.delete_one({"channel": chan.id})
+            continue
+          if len(chan.members) < 2:
+            await role.delete()
+          else:
+            for member in role.members:
+              if not member in chan.members:
+                # Member with role is not in the vc
+                await member.remove_roles(role)
+            for member in chan.members:
+              if not role in member.roles:
+                await member.add_roles(role)
+    await CheckCamMembers()
     await UpdateStatus()
 
 
-async def StopStudying(member_id):
+async def StopStudying(member_id, simulated=False, simulator=0):
     member = bot.guilds[0].get_member(member_id)
     if member is None:
       studycol.delete_one({"_id": member_id})
       return
-    studytime_elapsed = time.time() - studycol.find_one({"_id": member.id}).get("study_begin")
-    cam_usage = studycol.find_one({"_id": member.id}).get("cam_usage")
-    used_cam = cam_usage > (studytime_elapsed / 2)
+    doc = studycol.find_one({"_id": member.id})
     studycol.delete_one({"_id": member.id})
+
+    studytime_elapsed = time.time() - doc.get("study_begin")
+    cam_usage = doc.get("cam_usage")
+    used_cam = cam_usage > studytime_elapsed * 0.75
+
+    studycol.update_many({}, {"$unset": {f"relationships.{member.id}": ""}})
+
+    new_relations = 0
+
+    session_relations = doc.get("relationships") or []
+    if not GetUserAttr(member.id, "buddy_tracking_consent"):
+      session_relations = []
+    for relation in session_relations:
+      relation_num = int(relation)
+      if GetUserAttr(relation_num, "buddy_tracking_consent") and not relation_num in (GetUserAttr(member.id, "matched_relations") or []):
+        if buddytrackingcol.count_documents({"buddies": {"$all": [member.id, relation_num]}}) == 0:
+          buddytrackingcol.insert_one({
+            "buddies": [member.id, relation_num],
+            "tracking_expiration": time.time() + 60 * 60 * 24 * 14,
+            "individual_study_time": {relation: 0, str(member.id): 0},
+            "mutual_study_time": 0
+          })
+          new_relations += 1
+      else:
+        continue
+      buddytrackingcol.update_one({
+        "buddies": {"$all": [member.id, relation_num]}
+      }, {
+        "$inc": {"mutual_study_time": time.time() - session_relations[relation]}
+      })
+
+      # See if they match!
+      doc_relation = buddytrackingcol.find_one({"buddies": {"$all": [member.id, relation_num]}})
+      individual_study_time = doc_relation.get("individual_study_time")
+      min_study_time = 60 * 60 * 12
+      if individual_study_time[str(member.id)] > min_study_time and individual_study_time[relation] > min_study_time and doc_relation.get("mutual_study_time") / min(individual_study_time[str(member.id)], individual_study_time[relation]) > .8:
+        buddytrackingcol.delete_one({"_id": doc_relation.get("_id")})
+        buddy1 = await bot.fetch_user(member.id)
+        buddy2 = await bot.fetch_user(relation_num)
+        usercol.update_one({
+          "_id": buddy1.id
+        }, {
+          "$push": {"matched_relations": buddy2.id}
+        })
+        usercol.update_one({
+          "_id": buddy2.id
+        }, {
+          "$push": {"matched_relations": buddy1.id}
+        })
+        priv_chan = await bot.get_channel(channels.BuddyChatsCategory).create_text_channel(
+          buddy1.name + "-" + buddy2.name,
+          topic="You two have been matched by the buddy tracking machine, discuss!"
+        )
+        await priv_chan.set_permissions(buddy1, view_channel=True)
+        await priv_chan.set_permissions(buddy2, view_channel=True)
+        embed = discord.Embed()
+        embed.title = "<:ciccio:937053048486920212> Buddy Match <:ciccio:937053048486920212>"
+        embed.description = f"Hello, {buddy1.mention} and {buddy2.mention}!\nWe (the machine) have recognized that you two often study around the same time and could potentially be study buddies. You can discuss your compatibility in this private channel which will be __automatically deleted in 3 days__. The conversations can also continue in DMs if you both consent to it. All the best!"
+        embed.set_footer(text="Click the 🗑️ to delete this channel now, if any of you happen to not be interested in this offer.")
+        embed.colour = 0xb668c9
+        imsg = await priv_chan.send(buddy1.mention + buddy2.mention, embed=embed)
+        matchchanscol.insert_one({
+          "buddies": [buddy1.id, buddy2.id],
+          "channel": priv_chan.id,
+          "message": imsg.id,
+          "expiration": time.time() + 60 * 60 * 24 * 3
+        })
+
+        await imsg.add_reaction("🗑️")
+        await imsg.pin()
+        await priv_chan.send("Don't know what to say? Here are some things you can ask about to see if you would fit as buddies...\n- Time zone\n- Schedule hours\n- Study techniques\n- Field of study")
+    buddytrackingcol.update_many({"buddies": {"$in": [member.id]}}, {"$inc": {f"individual_study_time.{member.id}": studytime_elapsed}})
+
+    buddytrackingcol.delete_many({"tracking_expiration": {"$lt": time.time()}}) # Delete expired data
+
     maxtime = 6 * 60 * 60
     limitreached = False
-    if studytime_elapsed > maxtime:
+    actual_studytime_elapsed = studytime_elapsed
+    if studytime_elapsed > maxtime and not simulated:
       studytime_elapsed = maxtime
       limitreached = True
     # Check prestiges:
@@ -999,18 +1451,40 @@ async def StopStudying(member_id):
       #sunday
       await NewPrestige(member.id, "sundaystudy")
     # End check prestiges
-    silent_earnings_tokens = 5 / 60
-    silent_earnings_coins = 1.8 / 60 # orig. 10 / 60
-    cam_earnings_tokens = 6.5 / 60
-    cam_earnings_coins = 2 / 60 # orig. 13 / 60
-    earnstudytokens = round(studytime_elapsed * (silent_earnings_tokens if not used_cam else cam_earnings_tokens))
-    earncoins = round(studytime_elapsed * (silent_earnings_coins if not used_cam else cam_earnings_coins))
+    earnstudytokens = round(studytime_elapsed * (presets.SilentETokens if not used_cam else presets.CamETokens))
+    earncoins = round(studytime_elapsed * (presets.SilentECoins if not used_cam else presets.CamECoins))
     before_rank = GetUserRank(member.id, default="unavailable")
     AddUserTokens(member.id, earnstudytokens)
     after_rank = GetUserRank(member.id, default="unavailable")
     AddUserCoins(member.id, earncoins)
     SetUserAttr(member.id, "studytime", (GetUserAttr(member.id, "studytime") or 0) + studytime_elapsed)
-    await AddExperience(member, member.id, int(studytime_elapsed))
+    earnxp = int(studytime_elapsed)
+    await AddExperience(member, member.id, earnxp)
+
+    weeklystatscol.update_one({
+      "user": member.id,
+      "week": int(time.time() / 60 / 60 / 24 / 7)
+    }, {
+      "$inc": {
+        "studytime": studytime_elapsed
+      }
+    }, upsert=True)
+  
+    archive_id = random.randint(10**10, 10**11)
+    sessionarchivecol.insert_one({
+      "_id": archive_id,
+      "archived": time.time(),
+      "user": member.id,
+      "studytime": studytime_elapsed,
+      "coins": earncoins,
+      "studytokens": earnstudytokens,
+      "experience": earnxp,
+      "weekly_affected": weeklystatscol.find_one({"user": member.id, "week": int(time.time() / 60 / 60 / 24 / 7)}).get("_id")
+    })
+    if sessionarchivecol.count_documents({}) >= 500:
+      await bot.get_channel(channels.BotCommands).send("Performing an archive purge on all archives older than 2 days...")
+      sessionarchivecol.delete_many({"archived": {"$lt": time.time() - 2 * 24 * 60 * 60}})
+      await bot.get_channel(channels.BotCommands).send("Archive purge done.")
     smmode = GetUserAttr(member.id, "studymessages")
     if smmode is None:
       smmode = True
@@ -1018,15 +1492,51 @@ async def StopStudying(member_id):
     try:
       if not smmode is False:
         embed = discord.Embed()
-        embed.title = "<:1498pepestudying:841710573896335410> Study session complete!"
-        embed.description = f"<:0_momentum_star:889981889828511794> Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n<:0_momentum_star:889981889828511794> `+{earnstudytokens:,d} study tokens` <:book:816522587424817183>" if not NoTokens(member.id) else "") + f"\n\n<:0_momentum_star:889981889828511794> `+{earncoins:,d} coins` <:famcoin2:845382244554113064>" + ("\n\n<:0_momentum_star:889981889828511794> Camera/screenshare boosted profits" if used_cam else "") + (f"\n\n<:0_momentum_star:889981889828511794> <:beaver_2:841722221671743488> Woo! Your leaderboard rank went up: [`{before_rank}`](https://duckduckgo.com \"Your previous rank\") **➝** [`{after_rank}`](https://duckduckgo.com \"Your current rank\")" if before_rank != after_rank else (f"\n\n<:0_momentum_star:889981889828511794> Your leaderboard rank is [`{after_rank}`](https://duckduckgo.com \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n<:6773_Alert:783760764153495582> Oh no! You studied for `{GetTimeString(studytime_elapsed)}` which exceeds the study session limit of `6h`. Your earnings and study time was shortened to 6 hours instead of how long time you actually was there." if limitreached else "") + ("\n\n<:0_momentum_star:889981889828511794> You got closer to your study goal" if hasgoal else "")
-        embed.colour = discord.Colour.green()
-        embed.description += "\n\n[Want to disable these messages?](https://discord.com/channels/712808127539707927/713177565849845849/796105551229616139 \"Click to see how you can prevent these messages from being sent to you\")"
+        embed.description = f"<a:greatwork:961366842868367370> Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n<a:greatwork:961366842868367370> [`+{earnstudytokens:,d}`](https://duck.com \"Earned study tokens\") study tokens <:book:816522587424817183>" if not NoTokens(member.id) else "") + f"\n\n<a:greatwork:961366842868367370> [`+{earncoins:,d}`](https://duck.com \"Earned coins\") coins <:famcoin2:845382244554113064>" + ("\n\n<a:greatwork:961366842868367370> Camera/screenshare bonus!" if used_cam else "") + (f"\n\n<a:greatwork:961366842868367370> <:beaver_2:841722221671743488> Woo! You climbed the leaderboard: [`{before_rank}`](https://duck.com \"Your previous rank\") **➝** [`{after_rank}`](https://duck.com \"Your current rank\")" if before_rank != after_rank else (f"\n\n<a:greatwork:961366842868367370> Your leaderboard rank is [`{after_rank}`](https://duck.com \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n<a:greatwork:961366842868367370> {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n<:WokePepe:728196813412106270> Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n<a:greatwork:961366842868367370> You got closer to your study goal" if hasgoal else "")
+        embed.colour = 0x36393f#0x67356b
+        randomquote = random.choice([
+          #"\"Better luck next time\" is maybe what I would have said if it wasn't successful, but I'll say it anyway because I do hope you get even better luck next time.",
+          #"God didn't build the world in a day, but I bet they studied hard which is why he was successful... partly.",
+          "All my friends wish to tell you good luck!",
+          "Steal the garlic.",
+          "Steal the onion.",
+          "Zeref is disappointed (not at you).",
+          "Calu is happy.",
+          "Blue is happy.",
+          "Mia is happy.",
+          "I have a name for you!",
+          "Does not run.",
+          "I hope you will appreciate your return.",
+          "I admire you!",
+          "I love you, " + member.name + "!",
+          "ILY " + member.name + "!!!!",
+          "Even better now.",
+          "With great success comes great success.",
+          "Can you see me?",
+          "Are you set?",
+          "Great effeciency!",
+          "Great work, as always!",
+          "( ノ ^o^)ノ",
+          "w(ﾟДﾟ)w ... wow... that session was amazing.",
+          "Now, time for 🍰.",
+          "I am speechless.",
+          "Your company here? (ʘ ͜ʖ ʘ) Call 159.89.141.152.",
+          "I am without speech.",
+          "Congratulations!",
+          "D_D"
+        ])
+        embed.set_author(name=randomquote)
+        embed.description += f"\n\n[Disable or change location of session results?](https://discord.com/channels/712808127539707927/713177565849845849/796105551229616139 \"Click to see how you can prevent these messages from being sent to you\")" + (f"\n[SESSION WAS SIMULATED BY {simulator}]" if simulated else "")
         embed.set_thumbnail(url="https://media.discordapp.net/attachments/802215570996330517/889594173861269605/momentum_session_complete.png")
+        embed.set_footer(text=f"Archive ID: {archive_id}")
         if smmode is True:
-          await member.send(embed=embed)
+          try:
+            await member.send(embed=embed)
+          except:
+            await bot.get_channel(channels.BotCommands).send(f"Hello {member.mention}!\nI tried to send you this study sessions's results, but it couldn't be delivered.\nHave you disabled private messages from being sent to you? To enable, go to the server's privacy settings and enable \"Direct Messages\".\nIf you instead want to receive the results in the server, type \"mom studymessages server\" here.\nIf you don't want to receive the results anymore, type \"mom studymessages off\".")
         elif smmode == "server":
           await bot.get_channel(channels.BotCommands).send(member.mention, embed=embed)
+        await bot.get_channel(channels.BotLogs).send("`" + str(member.id) + " - " + member.name + "`", embed=embed)
     except:
       pass
     if hasgoal:
@@ -1051,20 +1561,27 @@ async def StopStudying(member_id):
         SetUserAttr(member.id, "dailygoal", goalarr)
 
 async def PlayJoinStudySound(uid, channel):
-    member = bot.guilds[0].get_member(uid)
+    #member = bot.guilds[0].get_member(uid)
+    if GetUserAttr(uid, "play_join_sound") is False:
+      return
     vclient = bot.guilds[0].voice_client
     if vclient is None:
       vclient = await channel.connect()
     else:
       await vclient.move_to(channel)
-    await asyncio.sleep(2)
+    await asyncio.sleep(3)
     def playSound():
+      thesound = sounds.Sounds[0]
+      if uid == 482459199213928459:
+        thesound = sounds.Sounds[2]
+      #elif uid == 195258903368302592:
+      #  thesound = sounds.Sounds[1]
       try:
-        vclient.play(soundcache.GetSound(sounds.Sounds[0]))
+        vclient.play(soundcache.GetSound(thesound))
       except:
         pass
     playSound()
-    await asyncio.sleep(10)
+    await asyncio.sleep(13)
     await vclient.disconnect()
 
 async def UpdateVoteMessage(message):
@@ -1114,20 +1631,23 @@ async def stats(ctx, user: discord.Member=None):
       embed.add_field(name="<:book:816522587424817183> Study tokens", value=f"`{GetUserTokens(user.id):,d}`")
     embed.add_field(name=(("<:famcoin2:845382244554113064> Coins" if user.id != 824316055681761320 else "<a:cat_popcorn:853734055765606430> Popcorn bank") if user.id != 577934880634306560 else "<a:1150_pugdancel:856637771795267614> Doggy bank") if user.id != 799293092209491998 else "🐖 Piggy bank", value=f"**{GetUserCoins(user.id):,d}**")
     studytime = GetUserAttr(user.id, "studytime")
-    embed.add_field(name="<:pepestudying:841710573896335410> Study time", value=GetTimeString(studytime) if studytime is not None else "No study session yet!")
+    embed.add_field(name="<:hourglass:816596944330817536> Study time", value=GetTimeString(studytime) if studytime is not None else "No study session yet!")
     if not NoTokens(user.id):
       embed.add_field(name="🧗 Rank", value="`" + str(GetUserRank(user.id, default="Unavailable")) + "`")
     prog = lvlinfo["progress"]
     req = lvlinfo["required"]
     rem = lvlinfo["remaining"]
-    embed.add_field(name="<:4813bigbrain:861353869216841769> Experience", value=f"[{prog:,d}" + " / " + f"{req:,d}](https://duckduckgo.com \"{rem:,d} left\")" + " (" + str(lvlinfo["progresspercent"]) + "%)")
+    embed.add_field(name="<:4813bigbrain:861353869216841769> Experience", value=f"[{prog:,d}" + " / " + f"{req:,d}](https://duck.com \"{rem:,d} left\")" + " (" + str(lvlinfo["progresspercent"]) + "%)")
 
     #embed.add_field(name="<:beaver_2:841722221671743488> Bump contributions", value=f'{GetUserAttr(user.id, "bump_count") or "No contributions yet!"}')
+
+    if GetUserAttr(user.id, "donations") is not None:
+      embed.add_field(name="<:pandalove:720968101532794910> Donated", value="Thank you for your donation.")
     
     cardcount = len(GetUserAttr(user.id, "card_inventory") or [])
     embed.add_field(name="<:crunchys:861351443004915712> Trade cards", value=cardcount if cardcount > 0 else "No trade cards yet!")
 
-    embed.description = "**[`  " + (" " * 11) + str(lvlinfo["level"]) + (" " * (11 - len(str(lvlinfo["level"])))) + "  `](https://duckduckgo.com \"Level\")**\n"
+    embed.description = "**[`  " + (" " * 11) + str(lvlinfo["level"]) + (" " * (11 - len(str(lvlinfo["level"])))) + "  `](https://duck.com \"Level\")**\n"
     BAR_ON = "<:progress_solid_on:891446235582590986>"
     BAR_OFF = "<:progress_solid_off:891446323767803934>"
     for i in range(10):
@@ -1138,6 +1658,8 @@ async def stats(ctx, user: discord.Member=None):
       embed.description += f"\n[{sanitize(user.name)} has disabled study tokens.](https://discord.com/channels/712808127539707927/713177565849845849/807738082903457802 \"More information about disabling study tokens\")"
     if user.joined_at is not None:
       embed.description += "\n*Joined " + GetTimeString(time.time() - user.joined_at.timestamp()) + " ago*"
+    if studycol.count_documents({"_id": user.id}) != 0:
+      embed.description += f"\n\n> {user.name} is studying ({GetTimeString(time.time() - studycol.find_one({'_id': user.id}).get('study_begin'))})"
 
 
     col = None
@@ -1216,7 +1738,10 @@ async def leaderboard(ctx, page=None):
     pagecount = math.ceil(usercol.count_documents(rquery) / 10)
     embed = discord.Embed()
     embed.title = "<:book:816522587424817183> Leaderboard (Monthly rankings)"
-    embed.set_thumbnail(url=n1mem.avatar_url_as(size=64))
+    try:
+      embed.set_thumbnail(url=n1mem.avatar_url_as(size=64))
+    except:
+      pass
     embed.description = ""
     ii = (page - 1) * 10
     i = ii
@@ -1225,14 +1750,14 @@ async def leaderboard(ctx, page=None):
       mem = bot.guilds[0].get_member(user.get("_id"))
       name = sanitize(mem.name if mem else "<User left server>")
       st = user.get("studytokens")
-      embed.description += (":medal:" if i == 1 else "") + f"[`#{i}`](https://duckduckgo.com \"Rank\") **" + name + "**" + (" [**[ YOU ]**](https://duckduckgo.com \"This is you\")" if user.get("_id") == ctx.author.id else "") + "\n<:book:816522587424817183>`" + f"{st:,d}" + "`\n"
+      embed.description += "[`#" + str(i) + ("🥇" if i == 1 else "") + "`](https://duck.com \"Rank\") **" + name + "**" + (" [**  ⟵ YOU**](https://duck.com \"This is you\")" if user.get("_id") == ctx.author.id else "") + "\n⤷  " + f"{st:,d}" + "\n"
     if i == ii:
       embed.description = "Empty page."
     selfrank = GetUserRank(ctx.author.id)
-    embed.description += f'\nYour leaderboard rank is [`{selfrank or "unavailable"}`](https://duckduckgo.com "{sanitize(ctx.author.name)}\'s rank")'
+    embed.description += f'\nYour leaderboard rank is [`{selfrank or "unavailable"}`](https://duck.com "{sanitize(ctx.author.name)}\'s rank")'
     if selfrank is None:
       embed.description += "\n[Why am I not shown on the leaderboard?](https://discord.com/channels/712808127539707927/713177565849845849/831853167858942012 \"Click to see why you are not shown on the leaderboard\")"
-    embed.colour = 0x34133f
+    embed.colour = 0x2f3136
     embed.set_footer(text=f"Page {page}/{pagecount}")
     await ctx.send(embed=embed)
 
@@ -1243,7 +1768,7 @@ async def help(ctx, *, showcategory=None):
     if showcategory is None:
       embed.description = f"Hey!\n**Momentum** is the bot for Study Fam. I will keep track of your studying, and at the same time serve much more features to keep your stay here as great as possible.\nAll you have to do is join a voice channel and get studying!\nThese are just some of the things I serve:\n• Tracking your studying\n• Leaderboard\n• Tools, preferences and options\n**Questions? Suggestions?** [Feel free to ask us](https://discord.com/channels/712808127539707927/857739970978775040/858281583348547584 \"Click to ask a question or suggest something\") or [see common questions and answers](https://discord.com/channels/712808127539707927/713177565849845849/845653574990168065 \"Click to see a list of common questions and their answers\").\n\nType `mom help <category>` to see the commands of a category."
       for categ in helpmenu:
-        embed.description += f'\n\n☞ [**{categ["name"]}**](https://duckduckgo.com \'Type "mom help {categ["name"]}" to see the commands of this category\')\n{categ.get("description") or "No description."}\n*{len(categ["commands"])} commands*'
+        embed.description += f'\n\n☞ [**{categ["name"]}**](https://duck.com \'Type "mom help {categ["name"]}" to see the commands of this category\')\n{categ.get("description") or "No description."}\n*{len(categ["commands"])} commands*'
       embed.colour = 0x4f771a
     else:
       chosencateg = None
@@ -1265,7 +1790,7 @@ async def help(ctx, *, showcategory=None):
           for param in command[0]:
             cmdusage += " " + ("<" if param[0] else "[") + param[1] + (">" if param[0] else "]")
           fullcmdusage = "mom " + cmdname + cmdusage
-          embed.description += f'\n\n❯ [`{cmdname}`](https://duckduckgo.com "{fullcmdusage}"){"||`" + cmdusage + "`||" if len(command[0]) > 0 else ""} {command[1]}'
+          embed.description += f'\n\n❯ [`{cmdname}`](https://duck.com "{fullcmdusage}"){"||`" + cmdusage + "`||" if len(command[0]) > 0 else ""} {command[1]}'
           embed.colour = 0x495619
       else:
         embed.description = "<:download1:739540738223898635> Uh, I could not find that category. Use `mom help` to see a list of categories."
@@ -1341,7 +1866,20 @@ async def pay(ctx, user: discord.Member=None, amount=None):
     AddUserCoins(user.id, amount)
     await AddExperience(ctx, ctx.author.id, 300)
     embed = discord.Embed()
-    embed.description = f"{ctx.author.mention} gave [`{amount:,d}`](https://duckduckgo.com \"Coins given\") coins to {user.mention}.\n\n{user.mention} now has `{GetUserCoins(user.id):,d}` coins!"
+    randomPun = random.choice([
+      "These puns are paid for by your monthly taxes.",
+      "So my mate was at a fancy dress party dressed as a bank vault.\nI said: ''I thought you were coming dressed as an apology?''\nHe said: 'Well, I thought I'd better be safe than sorry''.",
+  "England doesn’t have a kidney bank.\nBut it does have a Liverpool.",
+      "I got fired from my job at the bank today. An old lady asked me to check her balance...\n...so I pushed her over.",
+      "Why couldn't the skeleton rob the bank?\nIt didn't have the guts.",
+  "I invested in a bank that gave 0% interest.\nIt made no cents.",
+      "Why did the football player go to the bank?\nTo get his Quarter Back!",
+      "So this bank robber I know brings a bathroom scale with him to every heist.\nHe always gets a weigh.",
+  "What did the tree do when the bank was closed?\nStarted its own branch.",
+      "If you have no interest in banking...\nyou are not a loan.",
+      "Why did the bank owner buy cows?\nTo beef up security."
+    ])
+    embed.description = f"{ctx.author.mention} gave [`{amount:,d}`](https://duck.com \"Coins given\") coins to {user.mention}.\n\n{user.mention} now has `{GetUserCoins(user.id):,d}` coins!\n\nTHANK YOU FOR TRANSFERING MONEY WITH ME, HERE'S YOUR REWARD:\n> " + randomPun
     embed.colour = 0x45725b
     embed.set_thumbnail(url="https://icons.iconarchive.com/icons/aha-soft/business-toolbar/48/payment-icon.png")
     await ctx.send(ctx.author.mention, embed=embed)
@@ -1542,7 +2080,6 @@ async def hangman(ctx):
 
 
 @bot.command()
-@debugging_only()
 @casino_only()
 @level_restrict(5)
 async def flip(ctx, choice=None, amount=None):
@@ -1562,11 +2099,11 @@ async def flip(ctx, choice=None, amount=None):
     amount = int(amount)
     todayint = int(time.time() / 24 / 60 / 60)
     path = "flipwinnings." + str(todayint)
-    if ((usercol.find_one({"_id": ctx.author.id}).get("flipwinnings") or {}).get(str(todayint)) or 0) >= 10000:
-      await ctx.send("<:jimmy_gurr:730064025127223336> You've won too much money by doing this today. Come back another day to flip a coin.")
+    if ((usercol.find_one({"_id": ctx.author.id}).get("flipwinnings") or {}).get(str(todayint)) or 0) >= 1000:
+      await ctx.send("<:kermittest:815565956281401354> You've won too much money by doing this today. Come back another day to flip a coin.")
       return
-    if amount > 5000:
-      await ctx.send("You cannot bet for more than 5,000 coins.")
+    if amount > 200:
+      await ctx.send("You cannot bet for more than 200 coins.")
       return
     if amount < 30:
       await ctx.send("You must bet at least 30 coins.")
@@ -1574,12 +2111,12 @@ async def flip(ctx, choice=None, amount=None):
     if amount > GetUserCoins(ctx.author.id):
       await ctx.send("You don't have that much money!")
       return
-    if random.randrange(0, 91) == 90 and amount >= 500:
+    if random.randrange(0, 151) == 150:
       await AddExperience(ctx, ctx.author.id, 5000)
-      AddUserCoins(ctx.author.id, 10000)
+      AddUserCoins(ctx.author.id, 5000)
       await ctx.send(embed=discord.Embed(
         title="<:SanjiPepeLaugh:739592274253578260><:SanjiPepeLaugh:739592274253578260> INSANE LUCK!! <:SanjiPepeLaugh:739592274253578260><:SanjiPepeLaugh:739592274253578260>",
-        description="Wowowowow!\n**The coin landed on its vertical side!**\n`+10,000` coins!",
+        description="Wowowowow!\n**The coin landed on its vertical side!**\n`+5,000` coins!",
         colour=discord.Colour.orange()
       ))
       return
@@ -1587,11 +2124,11 @@ async def flip(ctx, choice=None, amount=None):
     coinside = random.randrange(0, 2)
     won = coinside == choice
     embed = discord.Embed()
-    embed.title = sides[coinside].upper()
-    embed.description = f"{ctx.author.mention} bet `{amount:,d}` coins on `{sides[choice]}` and **" + ("WON" if won else "LOST") + "**!\n`" + (("+" + str(amount * 2)) if won else ("-" + str(amount))) + "coins `"
+    embed.title = ("🤑" if won else "💀") + " " + sides[coinside].upper()
+    embed.description = f"{ctx.author.mention} bet `{amount:,d}` coins on `{sides[choice]}` and **" + ("WON" if won else "LOST") + "**!\n`" + (("+" + str(int(amount * 1.5))) if won else ("-" + str(amount))) + " coins`"
     embed.colour = discord.Colour.green() if won else discord.Colour.red()
     await ctx.send(embed=embed)
-    getcoins = amount * 2 if won else -amount
+    getcoins = int(amount * 1.5) if won else -amount
     await AddExperience(ctx, ctx.author.id, 40 if won else 8)
     AddUserCoins(ctx.author.id, getcoins)
     usercol.update_one({"_id": ctx.author.id}, {
@@ -1629,7 +2166,7 @@ async def roleshop(ctx):
     embed.description = "In the role shop you can use your well earned coins to buy roles for **channel access and other exclusive abilities**.\nType `mom buyrole [role]` to buy a role.\n**NOTE:** This is the __role__ shop. If you want to buy cards, use `mom packshop` instead.\n"
     for itemname in shopitems:
       item = shopitems[itemname]
-      embed.description += f"\n☞ [`{itemname}`](https://duckduckgo.com \"Role name\") <:famcoin2:845382244554113064> `{item[0]:,d}`" + (f" • **Lasts {GetTimeString(item[3])}**" if len(item) >= 4 else "") + (f" (**[OWNED](https://duckduckgo.com \"You own this role, and you cannot buy it\")**)" if discord.utils.get(ctx.author.roles, id=item[2]) else "") + f"\n{item[1]}\n"
+      embed.description += f"\n☞ [`{itemname}`](https://duck.com \"Role name\") <:famcoin2:845382244554113064> `{item[0]:,d}`" + (f" • **Lasts {GetTimeString(item[3])}**" if len(item) >= 4 else "") + (f" (**[OWNED](https://duck.com \"You own this role, and you cannot buy it\")**)" if discord.utils.get(ctx.author.roles, id=item[2]) else "") + f"\n{item[1]}\n"
     embed.colour = 0x843946
     embed.set_thumbnail(url="https://icons.iconarchive.com/icons/kyo-tux/basket/128/basket-full-icon.png")
     embed.set_footer(text="Use \"mom roles\" to see what temporary roles you own and when they expire.")
@@ -1647,7 +2184,7 @@ async def buyrole(ctx, itemname=None):
       await ctx.send("<a:download1:745404052598423635> That role does not exist in the role shop, please view the shop to see what we have.")
       return
     item = shopitems[itemname]
-    itemrole = discord.utils.get(ctx.guild.roles, id=item[2])
+    itemrole = discord.utils.get(bot.guilds[0].roles, id=item[2])
     if itemrole in ctx.author.roles:
       await ctx.send("<a:download1:745404052598423635> You already have this! You cannot buy it.")
       return
@@ -1663,10 +2200,11 @@ async def buyrole(ctx, itemname=None):
         "role": item[2],
         "user": ctx.author.id
       })
-    brole = discord.utils.get(bot.guilds[0].roles, id=item[2])
+    #brole = discord.utils.get(bot.guilds[0].roles, id=item[2])
+    # this is a duplicate of itemrole??
     await ctx.send(ctx.author.mention, embed=discord.Embed(
       title=f"<:famcoin2:845382244554113064> Purchased {itemname}",
-      description=f"You purchased the role {brole.mention} for `{item[0]:,d}` coins.\n> {item[1]}" + (f"\nYou will lose this role in `{GetTimeString(item[3])}`" if len(item) >= 4 else ""),
+      description=f"You purchased the role {itemrole.mention} for `{item[0]:,d}` coins.\n> {item[1]}" + (f"\nYou will lose this role in `{GetTimeString(item[3])}`" if len(item) >= 4 else ""),
       colour=0x378c28
     ))
 
@@ -1688,7 +2226,7 @@ async def packshop(ctx):
       for cardid in owncards:
         if cardid in pack["cards"] and not cardid in cardsownedc:
           cardsownedc.append(cardid)
-      embed.description += f'\n☞ [`{packname}`](https://duckduckgo.com "Pack name") <:famcoin2:845382244554113064> `{pack["cost"]:,d}` ({len(pack["cards"])} possible cards)' + (f' - **{round((len(cardsownedc) / len(pack["cards"])) * 100)} % collected**' if len(cardsownedc) > 0 else "") + f'\n{pack["description"]}\n'
+      embed.description += f'\n☞ [`{packname}`](https://duck.com "Pack name") <:famcoin2:845382244554113064> `{pack["cost"]:,d}` ({len(pack["cards"])} possible cards)' + (f' - **{round((len(cardsownedc) / len(pack["cards"])) * 100)} % collected**' if len(cardsownedc) > 0 else "") + f'\n{pack["description"]}\n'
     embed.colour = 0x136c8c
     embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/783066135662428180/851746324961558538/unknown.png")
     await ctx.send(embed=embed)
@@ -1733,7 +2271,7 @@ async def buypack(ctx, packname=None):
           }, upsert=True)
           dupecount = GetUserAttr(ctx.author.id, "card_inventory").count(card)
           embed = discord.Embed()
-          embed.description = f'<:shibacheer:720961100375523369> The pack contained:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://duckduckgo.com "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
+          embed.description = f'<:shibacheer:720961100375523369> The pack contained:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://duck.com "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
           embed.set_image(url="attachment://tradecard.png")
           embed.colour = tradecards.rarity_colours[cardobj["rarity"]]
           await ctx.send(ctx.author.mention, file=file, embed=embed)
@@ -1754,7 +2292,7 @@ async def mycards(ctx):
     for card in fixed:
       count = fixed[card]
       card = tradecards.tradecards[card]
-      embed.description += f'\n\n[`{card["name"]}`](https://duckduckgo.com "Card name") **{count}x** {tradecards.rarity_emojis[card["rarity"]]}'
+      embed.description += f'\n\n[`{card["name"]}`](https://duck.com "Card name") {"**{0}x** ".format(count) if count != 1 else ""}{tradecards.rarity_emojis[card["rarity"]]}'
     if len(fixed) == 0:
       embed.description += "\nYou own no cards yet."
     embed.set_thumbnail(url="https://icons.iconarchive.com/icons/be-os/be-box/32/Be-Card-Stack-icon.png")
@@ -1803,11 +2341,12 @@ async def cardinfo(ctx, *, cardname=None):
 
     embed = discord.Embed()
     embed.title = card["name"]
-    embed.description = (f'*{sanitize(card["quote"])}*\n\nRarity: {tradecards.rarity_emojis[card["rarity"]]} `{tradecards.rarities[card["rarity"]]}`\nMade by: {author.mention if author else "Unknown"}\nYou own: [`{owncount}x`](https://duckduckgo.com \"You have this many of this card\")\n' if owncount > 0 else "") + f'{totalowners} people have this card'
+    embed.description = (f'*{sanitize(card["quote"])}*\n\nRarity: {tradecards.rarity_emojis[card["rarity"]]} `{tradecards.rarities[card["rarity"]]}`\nMade by: {author.mention if author else "Unknown"}\nYou own: [`{owncount}x`](https://duck.com \"You have this many of this card\")\n' if owncount > 0 else "") + f'{totalowners} people have this card'
     if owncount > 0:
       embed.colour = tradecards.rarity_colours[card["rarity"]]
       embed.set_image(url="attachment://tradecard.png")
-      await ctx.send(file=LoadTradecardImage(cardid), embed=embed)
+      async with ctx.typing():
+        await ctx.send(file=LoadTradecardImage(cardid), embed=embed)
     else:
       embed.description += "\n\n**This trade card is yet unknown to you.**"
       embed.colour = 0x4c4c4c
@@ -1861,17 +2400,20 @@ async def setgoal(ctx, *, ftime=None):
     if totaltime < 5 * 60:
       await ctx.send("<a:download1:745404052598423635> Your goal must be at least 5 minutes.")
       return
-    if totaltime > 12 * 60 * 60:
-      await ctx.send("<a:download1:745404052598423635> What are you doing??\nDon't put your goal that high, max 12 hours.")
+    if totaltime > 20 * 60 * 60:
+      await ctx.send("<a:download1:745404052598423635> What are you doing??\nDon't put your goal that high, max 20 hours.")
+      return
+    if (time.time() + totaltime + (30 * 60)) > int((time.time() / (24 * 60 * 60)) + 1) * 24 * 60 * 60:
+      await ctx.send("<a:download1:745404052598423635> Oops! I'm sorry, but if you would start studying now until you reach the goal, you would finish later than 23:30 in UTC+0 which is 30 minutes before goal reset. Therefore you cannot set that goal at the moment.")
       return
     if totaltime >= 4 * 60 * 60:
       await NewPrestige(ctx.author.id, "planner")
     SetUserAttr(ctx.author.id, "dailygoal", [totaltime, totaltime, math.floor(time.time() / 24 / 60 / 60)])
     await AddExperience(ctx, ctx.author.id, 200)
     await ctx.send(ctx.author.mention, embed=discord.Embed(
-      description=f"<:wow:762241502898290698> Your goal of `{GetTimeString(totaltime)}` has been made, start studying and try[*](https://discord.com/channels/712808127539707927/713177565849845849/822971544098963456 \"Click for motivation\") reach it!",
+      description=f"<:wow:762241502898290698> Your goal of `{GetTimeString(totaltime)}` has been made, start studying and try[*](https://discord.com/channels/712808127539707927/713177565849845849/822971544098963456 \"Click for motivation\") reach it!\nSee your progress with the command `mom mygoal`.",
       colour=discord.Colour.green()
-      ))
+    ))
 
 
 
@@ -1883,7 +2425,20 @@ async def mygoal(ctx):
     goalarr = GetUserAttr(ctx.author.id, "dailygoal")
     tleft = goalarr[1]
     ttot = goalarr[0]
-    await ctx.send(f"<a:doge_dance:728195752123433030> **Study goal of today**\n`{GetTimeString(ttot - tleft)} out of {GetTimeString(ttot)}`\n(`{int((ttot - tleft) / ttot * 100)}%` complete, `{GetTimeString(tleft)}` left)")
+    progress = (ttot - tleft) / ttot
+    embed = discord.Embed()
+    embed.title = f"Study Goal: `{int((ttot - tleft) / ttot * 100)}%`"
+    embed.description = f"{GetTimeString(ttot - tleft)} finished out of {GetTimeString(ttot)}\n({GetTimeString(tleft)} remaining)"
+    embed.set_footer(text="Note that this is not updated until you exit your study session!")
+    start_color = (47, 49, 54)
+    end_color = (0, 255, 0)
+    rgb = (
+      math.floor(start_color[0] + progress * (end_color[0] - start_color[0])),
+      math.floor(start_color[1] + progress * (end_color[1] - start_color[1])),
+      math.floor(start_color[2] + progress * (end_color[2] - start_color[2]))
+    )
+    embed.colour = int("%02x%02x%02x" % rgb, 16)
+    await ctx.send(embed=embed)
 
 
 
@@ -2311,7 +2866,7 @@ async def UpdateBountyMessage(refid):
     description = doc.get("description")
     embed = discord.Embed()
     embed.title = "<a:doge_dance:728195752123433030> New Bounty!"
-    embed.description = f"Fellow officers, here is a bounty.\nClaim it with `mom claimbounty {refid}`!\n\nCreated by: {provider.mention}\nChallenge: `{description}`\nPrize: <:famcoin2:845382244554113064> `{deposit:,d}`\nClaim status: [{statusicon} **{statusmode}**](https://duckduckgo.com \"Whether this bounty is claimable or not\")" + (" (<@" + str(doc.get("claimed_by")) + ">)" if doc.get("claimed") else "")
+    embed.description = f"Fellow officers, here is a bounty.\nClaim it with `mom claimbounty {refid}`!\n\nCreated by: {provider.mention}\nChallenge: `{description}`\nPrize: <:famcoin2:845382244554113064> `{deposit:,d}`\nClaim status: [{statusicon} **{statusmode}**](https://duck.com \"Whether this bounty is claimable or not\")" + (" (<@" + str(doc.get("claimed_by")) + ">)" if doc.get("claimed") else "")
     embed.set_thumbnail(url="https://i.imgur.com/SchZkD8.png")
     embed.colour = 0x7a3333
     await msg.edit(content="", embed=embed)
@@ -2384,8 +2939,9 @@ async def cancelbounty(ctx):
     if doc.get("claimed") and doc.get("expires") > time.time():
       await ctx.send("You cannot cancel your bounty challenge because it has already been claimed by someone! You must succeed or fail the bounty challenge or wait until it has expired.")
       return
+    AddUserCoins(ctx.author.id, doc.get("input"))
     bntcol.delete_one({"provider": ctx.author.id})
-    await ctx.send(ctx.author.mention + "\nYour bounty has been canceled!\nYou did **not** get your bounty input of `" + str(doc.get("input")) + "` coins back.")
+    await ctx.send(ctx.author.mention + "\nYour bounty has been canceled!\nYou got your bounty input of `" + str(doc.get("input")) + "` coins back.")
 
 
 
@@ -2494,8 +3050,8 @@ async def reminder(ctx, *, ftime=None):
       await tamsg.delete()
       m = m.content
       totaltime = StringToTime(m)
-      if totaltime > 10 * 60 * 60:
-        await ctx.send("Max 10 hours for timer. The timer has not been set.")
+      if totaltime > 30 * 24 * 60 * 60:
+        await ctx.send("Max 30 days for timer. The timer has not been set.")
         return
       if totaltime < 30:
         await ctx.send("At least 30 seconds for timer. The timer has not been set.")
@@ -2558,11 +3114,11 @@ async def clearreminder(ctx, index=None):
 
 def LoadTradecardImage(idx):
     obj = tradecards.tradecards[idx]
-    frame = Image.open("images/frames/" + ["common", "uncommon", "rare", "legendary", "god"][obj["rarity"]] + ".png").convert("RGBA")
+    frame = Image.open("images/frames/new_card_frame_" + ["common", "uncommon", "rare", "legendary", "god"][obj["rarity"]] + ".png").convert("RGBA")
     tradecard = Image.open(tradecards.folderpath + obj["image"]).convert("RGBA")
     framedcard = Image.new("RGBA", frame.size)
     #height for old frames: 25px. For new: 56px
-    framedcard.paste(tradecard, (34, 25), tradecard)
+    framedcard.paste(tradecard, (34, 56), tradecard)
     framedcard.paste(frame, (0, 0), frame)
 
     text = Image.new("RGBA", framedcard.size, (255, 255, 255, 0))
@@ -2608,7 +3164,7 @@ async def credits(ctx):
       482459199213928459, #crunchyfrog
       195258903368302592, #archetim
       #307999381213151243, #ricestew
-      277708587554308096, #anivya
+      #277708587554308096, #anivya
       645256353966981120, #amelia
     ]
     imgs = []
@@ -2692,7 +3248,7 @@ async def mergecards(ctx):
           }, upsert=True)
           dupecount = GetUserAttr(ctx.author.id, "card_inventory").count(card)
           embed = discord.Embed()
-          embed.description = f'<:shibacheer:720961100375523369> You merged `{requiredcards}` `{tradecards.rarities[mergerarity]}` cards into one:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://duckduckgo.com "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
+          embed.description = f'<:shibacheer:720961100375523369> You merged `{requiredcards}` `{tradecards.rarities[mergerarity]}` cards into one:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://duck.com "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
           embed.set_image(url="attachment://tradecard.png")
           embed.colour = tradecards.rarity_colours[cardobj["rarity"]]
           await ctx.send(ctx.author.mention, file=LoadTradecardImage(card), embed=embed)
@@ -2712,7 +3268,7 @@ async def mergecards(ctx):
         for card in fixed:
           if fixed[card] > 0 and tradecards.tradecards[card]["rarity"] == mergerarity:
             availcards += fixed[card]
-            embed.description += f'[`{tradecards.tradecards[card]["name"]}`](https://duckduckgo.com "Type a card\'s name to merge it") (**{fixed[card]}x**) '
+            embed.description += f'[`{tradecards.tradecards[card]["name"]}`](https://duck.com "Type a card\'s name to merge it") (**{fixed[card]}x**) '
         embed.description += "\n\nType `cancel` to cancel the card merge."
         if availcards < requiredcards - len(chosencards):
           await ctx.send(f"You don't have enough `{tradecards.rarities[mergerarity]}` cards to merge them.\nYou need `{requiredcards}` but you only have `{availcards}`.")
@@ -2838,8 +3394,8 @@ async def trade(ctx, user: discord.Member=None):
           for trader in trades:
             deck = f'Coins: `{trader["coins"]:,d}`\n'
             for card in trader["cards"]:
-              deck += f'\n**{trader["cards"][card]}x** [{tradecards.tradecards[card]["name"]}](https://duckduckgo.com "Card name")'
-            deck += f'\n**[{"✓ Ready" if trader["status"] == 1 else "🞬 Not ready"}](https://duckduckgo.com "Status")**'
+              deck += f'\n**{trader["cards"][card]}x** [{tradecards.tradecards[card]["name"]}](https://duck.com "Card name")'
+            deck += f'\n**[{"✓ Ready" if trader["status"] == 1 else "🞬 Not ready"}](https://duck.com "Status")**'
             embed.add_field(name=ctx.author.name if i == 0 else user.name, value=deck)
             i += 1
           embed.colour = 0x3a1131
@@ -2982,7 +3538,7 @@ async def roles(ctx):
       embed.description += "\nNo temporary roles."
     else:
       for role in aroles:
-        embed.description += f"\n{role[0].mention}: Expires in **[{GetTimeString(role[1] - time.time())}](https://duckduckgo.com \"Temporary role expires\")**"
+        embed.description += f"\n{role[0].mention}: Expires in **[{GetTimeString(role[1] - time.time())}](https://duck.com \"Temporary role expires\")**"
     embed.colour = 0xf47c3f
     embed.set_thumbnail(url="https://i.imgur.com/zHwbaVS.png")
     await ctx.send(embed=embed)
@@ -3058,7 +3614,7 @@ async def translate(ctx, fromlang=None, tolang=None, *, text=None):
     embed.set_author(name=f"{fromlang.upper()} ➔ {tolang.upper()}")
     embed.title = "Translation"
     embed.add_field(name=fromlang.upper(), value=sanitize(text))
-    embed.add_field(name=tolang.upper(), value=f"[{sanitize(translation)}](https://duckduckgo.com \"Translated into this\")")
+    embed.add_field(name=tolang.upper(), value=f"[{sanitize(translation)}](https://duck.com \"Translated into this\")")
     embed.colour = 0x6d8409
     await ctx.send(ctx.author.mention, embed=embed)
 
@@ -3076,7 +3632,7 @@ async def stopwatch(ctx, action=None):
       "pause": None,
       "remove": 0
     }
-    if action in ["start", "begin", "continue"]:
+    if action in ["start", "begin", "continue", "s", "c"]:
       if settings["begin"] is None and settings["pause"] is None:
         settings["begin"] = time.time()
         await ctx.send("Started stopwatch!")
@@ -3086,20 +3642,20 @@ async def stopwatch(ctx, action=None):
         await ctx.send("Continued stopwatch.")
       else:
         await ctx.send("You cannot start the stopwatch right now because it's already running. The timer must either be paused or not active to be started.")
-    elif action in ["stop", "end"]:
+    elif action in ["stop", "end", "e"]:
       if settings["begin"] is not None:
         if settings["pause"] is not None:
           settings["remove"] += time.time() - settings["pause"]
           settings["pause"] = None
         await ctx.send(embed=discord.Embed(
           title="Stopwatch has ended",
-          description=f'You stopped your stopwatch.\nStopwatch took [**`{GetTimeString(time.time() - settings["begin"] - settings["remove"])}`**](https://duckduckgo.com "Stopwatch took this long").',
+          description=f'You stopped your stopwatch.\nStopwatch took [**`{GetTimeString(time.time() - settings["begin"] - settings["remove"])}`**](https://duck.com "Stopwatch took this long").',
           colour=0x96213a
         ))
         settings["begin"] = None
       else:
         await ctx.send("Your stopwatch is not active, therefore you cannot stop it.")
-    elif action in ["pause"]:
+    elif action in ["pause", "p"]:
       if settings["begin"] is not None and settings["pause"] is None:
         settings["pause"] = time.time()
         await ctx.send("Your stopwatch has been paused.")
@@ -3112,9 +3668,11 @@ async def stopwatch(ctx, action=None):
         await ctx.send("Your stopwatch is not active.\nDo `mom stopwatch start` to start the stopwatch.")
       else:
         await ctx.send(embed=discord.Embed(
-          description=("**Stopwatch is paused**\n" if settings["pause"] is not None else f'Stopwatch has taken [**`{GetTimeString(time.time() - settings["begin"] - settings["remove"])}`**](https://duckduckgo.com "Stopwatch has taken this long so far").\n') + f'Stopwatch was started `{GetTimeString(time.time() - settings["begin"])}` ago.\n\nUse `mom stopwatch stop` to end the stopwatch or `mom stopwatch pause`/`mom stopwatch continue` to pause it or continue it.',
+          description=("**Stopwatch is paused**\n" if settings["pause"] is not None else f'Stopwatch has taken [**`{GetTimeString(time.time() - settings["begin"] - settings["remove"])}`**](https://duck.com "Stopwatch has taken this long so far").\n') + f'Stopwatch was started `{GetTimeString(time.time() - settings["begin"])}` ago.\n\nUse `mom stopwatch stop` to end the stopwatch or `mom stopwatch pause`/`mom stopwatch continue` to pause it or continue it.',
           colour=0x29213f
         ))
+    else:
+      await ctx.reply("That's not a valid action!")
 
 
     if settings["begin"] is not None:
@@ -3146,34 +3704,19 @@ async def invite(ctx):
     else:
       await ctx.send("You already have an active invite, your invite is: " + invcol.find_one({"inviteowner": ctx.author.id}).get("url"))
 
-# @bot.command()
-# @admin_only()
-# async def amelia(ctx):
-#     inv = GetUserAttr(cardauthors.amelia, "card_inventory") or []
-#     i = 0
-#     for thecard in tradecards.tradecards:
-#       if thecard["author"] == cardauthors.amelia:
-#         inv.append(i)
-#       i += 1
-#     SetUserAttr(cardauthors.amelia, "card_inventory", inv)
-#     await ctx.send("amelia got her cards!")
-
 @bot.command(aliases=["message", "anonymous", "a"])
 async def anon(ctx, *, message=None):
-  if ctx.channel.id not in [
-    720769667542679684
-    # add more channels here to allow anonymous messages in
-  ]:
+  if not ctx.channel.id in channels.AllowAnonymousMessages:
     await ctx.message.delete()
-    await ctx.send(ctx.author.mention + " Sorry, but you can't make anonymous messages here.", delete_after=10)
+    await ctx.send(ctx.author.mention + " Sorry, but you can't make anonymous messages here, to prevent abuse. Please retry in an *emotional* channel.", delete_after=10)
     return
   if message is None:
     await ctx.send("No message was provided!")
     return
   def generatecode(iter=0):
-    if iter >= 60:
+    if iter >= 1000:
       return 0
-    tcode = random.randint(100, 999)
+    tcode = random.randint(10**4, 10**5)
     return tcode if anoncol.count_documents({"code": tcode}) == 0 else generatecode(iter + 1)
   code = generatecode()
   if code == 0:
@@ -3182,11 +3725,14 @@ async def anon(ctx, *, message=None):
   await ctx.message.delete()
   embed = discord.Embed()
   embed.set_author(name="Anonymous #" + str(code), icon_url="https://icons.iconarchive.com/icons/flameia/xrabbit/128/Tools-Terminal-icon.png")#"https://icons.iconarchive.com/icons/pixelmixer/basic-2/32/user-anonymous-icon.png")
-  embed.description = sanitize(message)
+  embed.description = message
   embed.colour = 0x2f3136
   replyto = ctx.message.reference
   if replyto is None:
-    msg = await ctx.send(embed=embed)
+    try:
+      msg = await ctx.send(embed=embed)
+    except:
+      pass
   else:
     msgreply = await ctx.fetch_message(replyto.message_id)
     msg = await msgreply.reply(embed=embed)
@@ -3196,6 +3742,7 @@ async def anon(ctx, *, message=None):
     "author": ctx.author.id,
     "message": message
   })
+  await ctx.author.send("Hello there!\nHere's just some information about anonymous messages within Momentum.\nYou just posted an anonymous message.\nUsers cannot see who posted what you did.\n**If you notice that the message you sent still remains in the chat and not get deleted, don't worry! That is a common client bug that can be fixed by refreshing Discord.**\nTo delete your anonymous message, click the message's reply button and type \"mom delanon\".\n\nPrivacy notice: anonymous messages' authors are saved in a secure database to prevent spam and abuse.")
 
 @bot.command()
 @admin_only()
@@ -3239,7 +3786,7 @@ async def delanon(ctx):
     await ctx.send("You're not allowed to delete that!")
 
 @bot.command()
-@debugging_only("waiting for release")
+@admin_only()
 async def vote(ctx, *, text=None):
     if votecol.count_documents({"author": ctx.author.id, "active": True}) >= 3:
       await ctx.send("You already have 3 active votes. Please close one before creating another.")
@@ -3283,21 +3830,421 @@ async def debugubt(ctx):
 
 @bot.command(aliases=["studying", "whostudy"])
 async def studylist(ctx):
-  embed = discord.Embed()
-  embed.title = "Studying Members"
-  desc = "Currently **" + str(studycol.count_documents({})) + "** people studying."
-  for studying in studycol.find({}):
-    member = bot.guilds[0].get_member(studying.get("_id"))
-    desc += "\n" + member.mention + " - **" + GetTimeString(time.time() - studying.get("study_begin")) + "**"
-  embed.description = desc
-  embed.colour = 0x3f528c
-  embed.set_thumbnail(url=bot.guilds[0].get_member(studycol.find_one({}).get("_id")).avatar_url_as(size=64))
-  await ctx.send(embed=embed)
+    embed = discord.Embed()
+    embed.title = "Studying Members"
+    desc = "Currently **" + str(studycol.count_documents({})) + "** people studying."
+    for studying in studycol.find():
+      member = bot.guilds[0].get_member(studying.get("_id"))
+      if member:
+        desc += "\n" + member.mention + " - **" + GetTimeString(time.time() - studying.get("study_begin")) + "**" + (" \📸" if studying.get("cam_usage_begin") is not None else "")
+    embed.description = desc
+    embed.colour = 0x3f528c
+    try:
+      embed.set_thumbnail(url=bot.guilds[0].get_member(studycol.find_one({}).get("_id")).avatar_url_as(size=64))
+    except:
+      pass
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def type(ctx):
-  await ctx.message.delete()
-  async with ctx.typing():
-    await asyncio.sleep(10)
+    await ctx.message.delete()
+    async with ctx.typing():
+      await asyncio.sleep(10)
 
-bot.run(os.getenv("DISCORD_TOKEN"))
+@bot.command()
+@admin_only()
+async def simstudy(ctx, user: discord.Member=None, *, studytime=None):
+    if user is None:
+      await ctx.send("Didn't provide member to simulate the studying on.")
+      return
+    saved_doc = None
+    if studycol.count_documents({"_id": user.id}) > 0:
+      saved_doc = studycol.find_one({"_id": user.id})
+      studycol.delete_one({"_id": user.id})
+    if studytime is None:
+      await ctx.send("Didn't provide a time amount.")
+      return
+    thetime = StringToTime(studytime)
+    if thetime is None or thetime > 6 * 24 * 60 * 60 or thetime < 0:
+      await ctx.send("Invalid study amount!")
+      return
+    msg = await ctx.send("Include camera/screenshare bonus? Type y/n.")
+    used_cam = False
+
+    def check(m):
+      return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
+    try:
+      m = await bot.wait_for("message", timeout=30, check=check)
+    except asyncio.TimeoutError:
+      await msg.delete()
+      await ctx.send("You didn't respond in time!")
+    else:
+      await m.delete()
+      await msg.delete()
+      content = m.content
+      if content.lower() == "y":
+        used_cam = True
+
+    studycol.insert_one({
+      "_id": user.id,
+      "study_begin": time.time() - thetime,
+      "cam_usage": thetime if used_cam else 0
+    })
+    await StopStudying(user.id, simulated=True, simulator=ctx.author.id)
+    if saved_doc is not None:
+      studycol.insert_one(saved_doc)
+    await ctx.send("Successfully simulated study time to member!\n*" + ("No bonus was given" if not used_cam else "With bonus") + "*")
+
+
+@bot.command()
+async def togglesound(ctx):
+    currentmode = GetUserAttr(ctx.author.id, "play_join_sound")
+    if currentmode is None:
+      currentmode = True
+    newmode = not currentmode
+    SetUserAttr(ctx.author.id, "play_join_sound", newmode)
+    await ctx.send(("Enabled" if newmode else "Disabled") + " join sounds.")
+
+
+@bot.command()
+async def brb(ctx):
+    pointermessage = GetUserAttr(ctx.author.id, "brb_pointer_message")
+    if pointermessage is None:
+      pointermessage = await ctx.send("Great! Use `mom brb` again to get here.")
+      SetUserAttr(ctx.author.id, "brb_pointer_message", pointermessage.jump_url)
+    else:
+      await ctx.reply("Hey, welcome back! Click here to get back to where you were: " + pointermessage)
+      RemUserAttr(ctx.author.id, "brb_pointer_message")
+
+@bot.command()
+@admin_only()
+async def verify(ctx, member: discord.Member=None):
+  if member is None:
+    await ctx.reply("You need to provide a member to verify.")
+    return
+  #await ctx.message.delete()
+  await member.add_roles(discord.utils.get(bot.guilds[0].roles, id=713466849148534814), discord.utils.get(bot.guilds[0].roles, id=783777725487382570))
+  embed = discord.Embed()
+  embed.description = f"You have been verified and can now access the server!\nMake sure to **read the** <#857730667542741012> beforehand.\n\n3 Features Not To Miss On The Server:\n1️⃣ To find a study buddy, visit <#934841449315459183> for our automated system!\n2️⃣ For full focus, use the **distraction-free mode** of the server by running the command `mom nd` in <#713177565849845849>. Run the command again to return to full-access.\n3️⃣ Assign yourself the 🔔 newsfeed role (among many others) at <#847915130968211497>, so you don't miss out on our announcements!\n\nEnjoy your stay and good luck! <:shibacheer:720961100375523369>"
+  embed.colour = 0xcaa7a7
+  embed.set_footer(text="When you have read this, please send a confirmation so that we can wrap this up!")
+  await ctx.send(member.mention, embed=embed)
+
+  # Ghost pings in important channels:
+
+  #for important_chan in channels.Important:
+  #  await bot.get_channel(important_chan).send(member.mention, delete_after=0)
+
+
+
+@bot.command()
+async def joinstudybuddies(ctx):
+    if studybuddiescol.count_documents({"_id": ctx.author.id}) > 0:
+      await ctx.send("You're already signed up as a study buddy! If you want to edit your registration details, please unregister first with the `leavestudybuddies` command.")
+      return
+    preferences = []
+    i = 0
+    for selector in presets.StudyBuddyOptions:
+      i += 1
+      embed = discord.Embed()
+      embed.set_author(name=f"Study Buddy Registration: {i}/{len(presets.StudyBuddyOptions)}")
+      embed.title = selector["title"]
+      embed.description = selector["description"] + "\n"
+      j = 0
+      for option in selector["options"]:
+        j += 1
+        embed.description += f"\n**{j}.** {option}"
+      embed.colour = 0xb53f64
+      choose_from = await ctx.send(embed=embed)
+      def check(m):
+        return m.author == ctx.author
+      try:
+        message = await bot.wait_for("message", timeout=60 * 5, check=check)
+      except asyncio.TimeoutError:
+        await choose_from.delete()
+        await ctx.send("You did not answer in time, please retry.")
+        break
+      else:
+        if not message.content.isnumeric():
+          await choose_from.delete()
+          await ctx.send("You should've responded with a number! Registration was canceled, please retry.")
+          return
+        chosen_option = int(message.content)
+        if len(selector["options"]) >= chosen_option:
+          await choose_from.delete()
+          await message.delete()
+          preferences.append(chosen_option - 1)
+        else:
+          await choose_from.delete()
+          await ctx.send("Invalid number! Please retry!")
+    studybuddiescol.insert_one({
+      "_id": ctx.author.id,
+      "preferences": preferences,
+      "registered_at": time.time()
+    })
+    await ctx.send(embed=discord.Embed(
+      title="You're signed up!",
+      description="Thank you for signing up as a study buddy!\nWe will notify you in the study buddies channel when we find a match for you.\nTo see the status, type `mom studybuddies`.",
+      colour=0x62935d
+    ))
+    await MatchStudyBuddies()
+
+
+@bot.command()
+async def leavestudybuddies(ctx):
+    if studybuddiescol.count_documents({"_id": ctx.author.id}) == 0:
+      await ctx.send("You have not signed up for study buddies yet.")
+      return
+    studybuddiescol.delete_one({"_id": ctx.author.id})
+    await ctx.send(embed=discord.Embed(
+      title="Resigned",
+      description="You have resigned from the study buddies program.",
+      colour=0x62935d
+    ))
+
+@bot.command()
+async def studybuddies(ctx):
+    embed = discord.Embed()
+    embed.title = "Study Buddies Information"
+    embed.description = "The study buddy program is a system built into me (Momentum) that automates finding study buddies that are similar to you. People who have been in the queue for a longer time are prioritized."
+    own_doc = studybuddiescol.find_one({"_id": ctx.author.id})
+    if own_doc is not None:
+      value = "Type `mom leavestudybuddies` to resign."
+      i = 0
+      for selector in presets.StudyBuddyOptions:
+        value += f"\n`{selector['title']}: " + selector["options"][own_doc.get("preferences")[i]] + "`"
+        i += 1
+      embed.add_field(name="You're signed up!", value=value)
+    else:
+      embed.add_field(name="Get started!", value="Type `mom joinstudybuddies` to join the program.")
+    embed.add_field(name="Queue", value=f"There are currently `{studybuddiescol.count_documents({})}` waiting to find a study buddy!")
+    embed.colour = 0x897939
+    await ctx.send(embed=embed)
+
+
+async def MatchStudyBuddies():
+    for registered in studybuddiescol.find():
+      perfect_match = studybuddiescol.find_one({
+        "preferences": registered.get("preferences"),
+        "_id": {"$not": {"$eq": registered.get("_id")}}
+      }, sort=[("registered_at", 1)])
+      if perfect_match is not None:
+        buddy1 = await bot.fetch_user(registered.get("_id"))
+        buddy2 = await bot.fetch_user(perfect_match.get("_id"))
+        studybuddiescol.delete_many({"$or": [{"_id": buddy1.id}, {"_id": buddy2.id}]})
+        embed = discord.Embed()
+        embed.title = "<a:CS_Wiggle:856616923915878411> Study Buddy Match <a:CS_Wiggle:856616923915878411>"
+        embed.description = f"Hello, {buddy1.mention} and {buddy2.mention}!\nYou two have been matched together. Please get in contact with each other!\nBoth of you have been removed from the program queue."
+        embed.colour = 0x895139
+        await bot.get_channel(channels.BuddyApplications).send(buddy1.mention + buddy2.mention, embed=embed)
+
+async def ConfirmBuddyTrackingConsent(member: discord.Member):
+    confirm_msg = await bot.get_channel(channels.BotCommands).send(member.mention, embed=discord.Embed(
+      title="Enable Buddy Tracking?",
+      description=f"Hello, {member.name}!\nDo you want me to track your study data to eventually suggest you a study buddy based on when you study?\nYou can change this at any time with `mom buddytracking`. Read more at <#934841449315459183>.\n\nType `yes` to consent to this, otherwise `no`. Please answer now, I will remind you about this offer until you respond.",
+      colour=0xedeccb
+    ))
+
+    def check(m):
+      return m.author.id == member.id and m.channel == confirm_msg.channel
+    try:
+      m = await bot.wait_for("message", timeout=5 * 60, check=check)
+    except asyncio.TimeoutError:
+      await confirm_msg.delete()
+      #await confirm_msg.edit(content=member.mention + " **You did not respond in time! Please use the command instead if you want to enable buddy tracking.**")
+    else:
+      if m.content.lower() == "yes":
+        SetUserAttr(member.id, "buddy_tracking_consent", True)
+        await confirm_msg.delete()
+        response = await m.reply("Thanks! Disable this at anytime with `mom buddytracking`.")
+        await asyncio.sleep(10)
+        await m.delete()
+        await response.delete()
+      else:
+        SetUserAttr(member.id, "buddy_tracking_consent", False)
+        await confirm_msg.delete()
+        response = await m.reply("Okay, then! You can enable it whenever with `mom buddytracking`.")
+        await asyncio.sleep(10)
+        await m.delete()
+        await response.delete()
+
+@bot.command()
+async def buddytracking(ctx):
+    if not GetUserAttr(ctx.author.id, "buddy_tracking_consent"):
+      SetUserAttr(ctx.author.id, "buddy_tracking_consent", True)
+      await ctx.reply("Buddy tracking has been enabled!")
+    else:
+      cmsg = await ctx.reply(f'Are you sure that you want to disable buddy tracking and delete all saved data to it?\nYou have {buddytrackingcol.count_documents({"buddies": {"$in": [ctx.author.id]}})} generated relationships that will be deleted.\nType yes/no to confirm/deny.')
+      def check(m):
+        return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
+      try:
+        m = await bot.wait_for("message", timeout=60, check=check)
+      except:
+        await cmsg.delete()
+        await ctx.send("Timed out.")
+      else:
+        c = m.content.lower()
+        await cmsg.delete()
+        await m.delete()
+        if c == "yes":
+          buddytrackingcol.delete_many({"buddies": {"$in": [ctx.author.id]}})
+          SetUserAttr(ctx.author.id, "buddy_tracking_consent", False)
+          await ctx.reply("Buddy tracking has been disabled and your tracked data has been deleted.")
+        else:
+          await ctx.reply("Buddy tracking remains enabled. Your data has __not__ been deleted.")
+
+
+temp_output_msg = None
+callback_count = 0
+exceeded_size = None
+
+@bot.command(aliases=["x"])
+@debugging_only("Vad förväntade du dig?")
+async def exe(ctx, *, script):
+    if script is None:
+      await ctx.send("No script provided!")
+      return
+    class TempStd:
+      def __init__(self, write_callback):
+        self.out = ""
+        self.on_write = write_callback
+      def write(self, o, force_callback=False):
+        self.out += str(o)
+        self.on_write(forced=force_callback)
+    stdout_ = sys.stdout
+    output_msg = await ctx.reply("Executing...")
+    def callback(forced):
+      global callback_count, exceeded_size
+      if callback_count < 50:
+        if callback_count % (5 if len(tempstd.out) < 200 else 30) == 0 or forced:
+          asyncio.get_event_loop().create_task(output_msg.edit(content=f"```\n[executing script...]\n{tempstd.out if len(tempstd.out) < 1900 else tempstd.out[(len(tempstd.out) - 1900):]}```"))
+          callback_count += 1
+      elif not exceeded_size:
+        exceeded_size = True
+        asyncio.get_event_loop().create_task(ctx.send("Exceeded max output size!"))
+    global tempstd
+    tempstd = TempStd(callback)
+    sys.stdout = tempstd
+    start = time.time()
+    exec(script)
+    tempstd.write("[finished! execution took " + GetTimeString(time.time() - start) + "]", force_callback=True)
+    sys.stdout = stdout_
+
+@bot.command()
+@admin_only()
+async def raw(ctx):
+    if not ctx.message.reference:
+      await ctx.reply("You have to reply to a message to see its formatting.")
+      return
+    content = (await bot.get_channel(ctx.message.reference.channel_id).fetch_message(ctx.message.reference.message_id)).content
+    await ctx.reply("```md\n" + content + "\n```")
+
+@bot.command()
+@admin_only()
+async def revertsession(ctx, aid=None):
+    if aid is None:
+      await ctx.reply("You must provide the archive ID to revert the session. Please try again! The archive ID can be found at the bottom of the session result message.")
+      return
+    try:
+      aid = int(aid)
+    except:
+      await ctx.reply(f"Archive ID `{aid}` is not a number (it has to be).")
+      return
+    doc = sessionarchivecol.find_one({"_id": aid})
+    if doc is None:
+      await ctx.reply("No archive was found with such ID! Make sure that you copied the code from the bottom of the session result message. If you did, the archive was probably deleted. Archives older than 2 days are purged when the archive count reaches 500.")
+      return
+    member = bot.guilds[0].get_member(doc.get("user"))
+    await ctx.reply(f"Session belongs to {member.name}.\nReverting the session earnings and deleting archive...\nContained data: `{doc}`")
+    SetUserAttr(member.id, "studytime", GetUserAttr(member.id, "studytime") - doc.get("studytime"))
+    TakeUserCoins(member.id, doc.get("coins"))
+    AddUserTokens(member.id, -doc.get("studytokens"))
+    await AddExperience(member, member.id, -doc.get("experience"))
+    sessionarchivecol.delete_one({"_id": aid})
+    weeklystatscol.update_one({
+      "_id": doc.get("weekly_affected")
+    }, {
+      "$inc": {
+        "studytime": -doc.get("studytime")
+      }
+    })
+    await ctx.send("Revert successful. Earnings were removed.")
+
+@bot.command()
+@admin_only()
+async def mkdon(ctx, member: discord.Member=None, donation=None):
+    if member is None:
+      await ctx.reply("No donator was provided.")
+      return
+    if donation is None:
+      await ctx.reply("No donation amount was provided.")
+      return
+    try:
+      donation = float(donation)
+    except ValueError:
+      await ctx.reply(f"Donation value (`{donation}`) is not a number.")
+      return
+    SetUserAttr(member.id, "donations", (GetUserAttr(member.id, "donations") or 0) + donation)
+    donrole = discord.utils.get(bot.guilds[0].roles, id=960976176057319444)
+    await member.add_roles(donrole)
+    temprolescol.insert_one({
+      "expires": time.time() + 30 * 24 * 60 * 60 * math.ceil (donation / 5),
+      "role": 960976176057319444,
+      "user": member.id
+    })
+    await bot.get_channel(channels.General).send(embed=discord.Embed(
+      title="╮(╯▽╰)╭",
+      description=f"{member.mention} has made a donation! Thank you so much!\nThe money will be used for the continued development and uptime of this bot, Momentum.",
+      colour=0xd88e34
+    ))
+    await ctx.reply("Donation added!")
+
+@bot.command()
+@admin_only()
+async def stop(ctx):
+    await ctx.reply("Stopping...")
+    sys.exit()
+
+@bot.command(aliases=["week"])
+async def weekly(ctx):
+    this_week_doc = weeklystatscol.find_one({"user": ctx.author.id, "week": int(time.time() / 60 / 60 / 24 / 7)}) or {"studytime": 0}
+    old_weeks_docs = weeklystatscol.find({"user": ctx.author.id}, sort=[("week", -1)], skip=1, limit=3)
+    week_leader_doc = weeklystatscol.find_one({"week": int(time.time() / 60 / 60 / 24 / 7)}, sort=[("studytime", -1)])
+    older_weeks_str = ""
+    for old_week in old_weeks_docs:
+      older_weeks_str += " - " + GetTimeString(old_week.get("studytime"))
+    weekly_leader = bot.guilds[0].get_member(week_leader_doc.get("user")) if week_leader_doc else None
+    await ctx.send(embed=discord.Embed(
+      title="Weekly study data",
+      description=f"This week - **{GetTimeString(this_week_doc.get('studytime'))}**\nLast recorded weeks**{older_weeks_str}**\nThis week's leader - {weekly_leader.mention if week_leader_doc else 'no calculated leader'} (**{GetTimeString(week_leader_doc.get('studytime')) if week_leader_doc else 'none'}**)",
+      colour=0x9ca830
+    ))
+
+@bot.command()
+@admin_only()
+async def reset_leaderboard(ctx, *, confirm=None):
+  required_confirm_value = str(datetime.datetime.now().strftime("%-d %-m %Y"))
+  if confirm == required_confirm_value:
+    await CheckMonthlyLeaderboardReset(force=True)
+    await ctx.reply("Reset the leaderboard!")
+  else:
+    await ctx.reply("Please rerun the command and append the **current day of the month, month, and year**, all separated by spaces in that order to confirm the leaderboard reset.")
+
+@bot.command(aliases=["reboot", "r"])
+async def restart(ctx):
+    await ctx.reply("Rebooting...")
+    botactivitycol.update_one({"_id": 1}, {
+      "$set": {"reboot_chan": ctx.channel.id, "timestamp": time.time()}
+    }, upsert=True)
+    os.system("busybox reboot")
+
+
+
+
+  
+try:
+  bot.run(os.getenv("DISCORD_TOKEN"))
+except discord.errors.HTTPException:
+  print("REBOOTING...")
+  time.sleep(5)
+  os.system("busybox reboot")

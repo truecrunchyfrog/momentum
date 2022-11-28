@@ -30,7 +30,13 @@ helpmenu = [
       "roles": [[], "View your temporary roles and see when they expire"],
       "anon": [[[True, "message"]], "Send a message anonymously"],
 "delanon": [[], "Delete an anonymous message"],
-      "studylist": [[], "Show a list of who is studying and for how long"]
+      "studylist": [[], "Show a list of who is studying and for how long"],
+      "togglesound": [[], "Toggle the sound effect that is played when you start studying"],
+      "brb": [[], "Bring yourself back into the state of a conversation after you left"],
+      # "joinstudybuddies": [[], "Register yourself for the automated study buddy program"],
+      # "leavestudybuddies": [[], "Resign from the study buddy program"],
+      # "studybuddies": [[], "Information about the study buddy program"],
+      "buddytracking": [[], "Toggle if you want to be suggested possible study buddies"]
     }
   },
   {

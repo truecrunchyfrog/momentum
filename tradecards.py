@@ -27,11 +27,11 @@ rarity_sellfor = [
 ]
 
 rarity_emojis = [
-  "<:raritycommon:891037472992149614>",
-  "<:rarityuncommon:891037946013163560>",
-  "<:rarityrare:891037474304970812>",
-  "<:raritylegendary:891037473721942027>",
-  "<:raritygod:891037473352847360>"
+  "<:rc:891037472992149614>",
+  "<:ru:891037946013163560>",
+  "<:rr:891037474304970812>",
+  "<:rl:891037473721942027>",
+  "<:rg:891037473352847360>"
 ]
 
 rarity_colours = [
@@ -359,6 +359,20 @@ tradecards = [
     "image": "rice.png",
     "author": ca.archetim
   },
+  {
+    "name": "Calu", # 45
+    "quote": "I'm blue, dabadee dabadi...",
+    "rarity": 2,
+    "image": "calu.png",
+    "author": ca.crunchyfrog
+  },
+  {
+    "name": "Blue", # 46
+    "quote": "Slightly impersonatable mad pigeon.\nAtaataat aataaaaa attattaa attatttt atttatta attaatat aataaaaa attttaat attatttt atttatat aataaaaa ataaaatt attattaa attatttt atttatat attaataa! \n -Calu",
+    "rarity": 3,
+    "image": "blue.png",
+    "author": ca.archetim
+  }
 ]
 
 
@@ -371,7 +385,7 @@ packs = {
   },
   "cats": {
     "cost": 1400,
-    "cards": [1, 2, 3, 5, 6, 14, 17, 18, 22, 23, 36, 37, 38, 39],
-    "description": "Yes. We have so many cat cards that we have an entire pack for it. Some cats from this pack are actually memes. 100% chance of getting a cat, get one now!"
-  },
+    "cards": [1, 2, 3, 5, 6, 14, 17, 18, 22, 23, 36, 37, 38, 39, 45, 46],
+    "description": "Yes. We have so many cat cards that we have an entire pack for it. Some cats from this pack are actually memes. >87.5% chance of getting a cat, get one now! There are two impostors."
+  }
 }
