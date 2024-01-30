@@ -12,7 +12,6 @@ Copyright crunchyfrog (https://github.com/javaveryhot) Dec 2020 - June 2023
 import os, pymongo, time, datetime, asyncio, random, math, requests, sys, hashlib, flag, re
 import discord
 from discord.ext import commands
-from keep_alive import keep_alive
 from helpmenu import helpmenu
 from shopitems import shopitems
 import tradecards
@@ -398,7 +397,6 @@ async def on_ready():
           usercol.insert_one({"_id": member.id})
     if choice == "y":
       cmdtook = time.time() - cmdstart
-    keep_alive()
     print("\033[01m\033[32mReady\033[0m")
     await asyncio.sleep(.02)
     if choice == "y":
