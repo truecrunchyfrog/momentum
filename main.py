@@ -5,7 +5,7 @@ This is the full source code for the Momentum bot.
 If you are aware of this, please don't abuse the knowledge of the source code or any other file in this project.
 Do not directly fork or distribute the source code or other content of this project for use in another public bot, thank you!
 
-Copyright crunchyfrog (https://github.com/javaveryhot) Dec 2020 - May 2022
+Copyright crunchyfrog (https://github.com/javaveryhot) Dec 2020 - June 2023
 '''
 
 
@@ -539,7 +539,7 @@ async def mc_loop():
         matchchanscol.delete_one({"_id": expired_chan.get("_id")})
         await bot.get_channel(expired_chan.get("channel")).delete()
       for soon_expiring_chan in matchchanscol.find({"expiration": {"$lt": time.time() + 60 * 60}, "deletion_alert_sent": {"$not": {"$eq": True}}}):
-        matchchanscol.update_one({"_id": soon_expiring_chan.get("_id")}, {"deletion_alert_sent": True})
+        matchchanscol.update_one({"_id": soon_expiring_chan.get("_id")}, {"$set": {"deletion_alert_sent": True}})
         buddy1 = await bot.fetch_user(soon_expiring_chan.get("buddies")[0])
         buddy2 = await bot.fetch_user(soon_expiring_chan.get("buddies")[1])
         await bot.get_channel(soon_expiring_chan.get("channel")).send(buddy1.mention + buddy2.mention + "\nThis is a reminder that this channel will be deleted within less than an hour. If you are planning on becoming study buddies I suggest you take the discussion further somewhere else now if you haven't already.\nGood luck!")
@@ -551,7 +551,7 @@ async def ku_loop():
       for studying in studycol.find({"study_begin": {"$lt": time.time() - 60 * 60 * 6}}):
         studying = bot.guilds[0].get_member(studying.get("_id"))
         if studying.voice:
-          studying.move_to(None)
+          await studying.move_to(None)
           try:
             await studying.send("**Did you fall asleep?** You have been kicked from the study channel for studying in there for more than 6 hours.\nIf you were actually studying, just ignore this message and rejoin.")
           except:
@@ -1155,7 +1155,7 @@ async def on_raw_reaction_add(payload):
               TakeUserCoins(payload.member.id, starcost)
               starcol.insert_one({"_id": message.id})
               embed = discord.Embed()
-              embed.set_author(name=message.author.name, icon_url=message.author.avatar_url_as(size=32))
+              embed.set_author(name=message.author.name, icon_url=message.author.display_avatar.with_size(32).url)
               sendfiles = []
               if len(message.attachments) == 0:
                 content = message.content
@@ -1626,7 +1626,7 @@ async def stats(ctx, user: discord.Member=None):
     embed = discord.Embed()
     embed.set_author(name=user.name)
     lvlinfo = GetLevelInfo(user.id)
-    embed.set_thumbnail(url=user.avatar_url_as(size=128))
+    embed.set_thumbnail(url=user.display_avatar.with_size(128).url)
     if not NoTokens(user.id):
       embed.add_field(name="<:book:816522587424817183> Study tokens", value=f"`{GetUserTokens(user.id):,d}`")
     embed.add_field(name=(("<:famcoin2:845382244554113064> Coins" if user.id != 824316055681761320 else "<a:cat_popcorn:853734055765606430> Popcorn bank") if user.id != 577934880634306560 else "<a:1150_pugdancel:856637771795267614> Doggy bank") if user.id != 799293092209491998 else "🐖 Piggy bank", value=f"**{GetUserCoins(user.id):,d}**")
@@ -1739,7 +1739,7 @@ async def leaderboard(ctx, page=None):
     embed = discord.Embed()
     embed.title = "<:book:816522587424817183> Leaderboard (Monthly rankings)"
     try:
-      embed.set_thumbnail(url=n1mem.avatar_url_as(size=64))
+      embed.set_thumbnail(url=n1mem.display_avatar.with_size(64).url)
     except:
       pass
     embed.description = ""
@@ -2281,17 +2281,18 @@ async def buypack(ctx, packname=None):
 @bot.command(aliases=["tradecards", "mytradecards", "cardlist", "cards", "cardinventory", "cardinv", "inventory", "inv"])
 async def mycards(ctx):
     cards = GetUserAttr(ctx.author.id, "card_inventory") or []
-    fixed = {}
-    for card in cards:
+    fixed = []
+    for cardidx in cards:
+      card = tradecards.tradecards[cardidx]
       if card in fixed:
         continue
-      fixed[card] = cards.count(card)
+      fixed.append(card)
+    fixed = sorted(fixed, key=lambda d: d["rarity"], reverse=True)
     embed = discord.Embed()
     embed.title = "Study Fam Card Collection"
     embed.description = f'This is your card collection.\n`{len(fixed)}/{len(tradecards.tradecards)}` unique cards (`{len(cards)}` in total).\nUse `mom cardinfo <card>` to see information about a card.\n'
     for card in fixed:
-      count = fixed[card]
-      card = tradecards.tradecards[card]
+      count = cards.count(tradecards.tradecards.index(card))
       embed.description += f'\n\n[`{card["name"]}`](https://duck.com "Card name") {"**{0}x** ".format(count) if count != 1 else ""}{tradecards.rarity_emojis[card["rarity"]]}'
     if len(fixed) == 0:
       embed.description += "\nYou own no cards yet."
@@ -3133,7 +3134,7 @@ def LoadTradecardImage(idx):
     creditedtradecard = Image.alpha_composite(framedcard, text)
 
     if author:
-      avatar = Image.open(requests.get(author.avatar_url_as(size=32), stream=True).raw).convert("RGBA")
+      avatar = Image.open(requests.get(author.display_avatar.with_size(32).url, stream=True).raw).convert("RGBA")
       creditedtradecard.paste(avatar, (43, 1100))
 
     temppath = tempfp()
@@ -3170,7 +3171,7 @@ async def credits(ctx):
     imgs = []
     frames = 30
     for a in ctna:
-      o = Image.open(requests.get((bot.guilds[0].get_member(a)).avatar_url_as(size=128), stream=True).raw)
+      o = Image.open(requests.get((bot.guilds[0].get_member(a)).display_avatar.with_size(128).url, stream=True).raw)
       #pre-transition
       for tr in range(frames):
         t = Image.new("RGB", (128, 128))
@@ -3604,7 +3605,7 @@ async def translate(ctx, fromlang=None, tolang=None, *, text=None):
     if fromlang == tolang:
       await ctx.send("You cannot translate into the same language! What are you thinking?")
       return
-    langs = GoogleTranslator.get_supported_languages()
+    langs = GoogleTranslator().get_supported_languages()
     for clang in [fromlang, tolang]:
       if clang not in langs and clang != "auto":
         await ctx.send(f'The language `{sanitize(clang)}` is not supported. Make sure that it is fully spelled and not an abbreviation.\nThe supported languages are:\n`{", ".join(langs)}`')
@@ -3840,7 +3841,7 @@ async def studylist(ctx):
     embed.description = desc
     embed.colour = 0x3f528c
     try:
-      embed.set_thumbnail(url=bot.guilds[0].get_member(studycol.find_one({}).get("_id")).avatar_url_as(size=64))
+      embed.set_thumbnail(url=bot.guilds[0].get_member(studycol.find_one({}).get("_id")).display_avatar.with_size(64).url)
     except:
       pass
     await ctx.send(embed=embed)
@@ -4239,9 +4240,19 @@ async def restart(ctx):
     os.system("busybox reboot")
 
 
+@bot.command(aliases=["calmme", "exercise", "breath", "calming", "breathing"])
+async def calm(ctx):
+  await ctx.reply("https://tenor.com/view/breathe-countdown-meditate-breathe-out-hold-gif-17698260")
+
+@bot.command(aliases=["helpmefocus", "adhd", "distract", "distraction", "focusing", "helpfocus", "focushelp", "distracted"])
+async def focus(ctx):
+  await ctx.reply("https://media.giphy.com/media/3oz8y07PqQ3PGo4fe0/giphy.gif")
+
+@bot.command(aliases=["coolbreath", "energybreath", "energizing", "energization", "breathenergy"])
+async def energy(ctx):
+  await ctx.reply("https://media.giphy.com/media/UW8VVu5c2OBUy43cos/giphy.gif")
 
 
-  
 try:
   bot.run(os.getenv("DISCORD_TOKEN"))
 except discord.errors.HTTPException:

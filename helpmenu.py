@@ -36,7 +36,10 @@ helpmenu = [
       # "joinstudybuddies": [[], "Register yourself for the automated study buddy program"],
       # "leavestudybuddies": [[], "Resign from the study buddy program"],
       # "studybuddies": [[], "Information about the study buddy program"],
-      "buddytracking": [[], "Toggle if you want to be suggested possible study buddies"]
+      "buddytracking": [[], "Toggle if you want to be suggested possible study buddies"],
+      "calm": [[], "Helps you wind down."],
+      "focus": [[], "Helps you get back to work!"],
+      "energy": [[], "Helps you wind up."]
     }
   },
   {

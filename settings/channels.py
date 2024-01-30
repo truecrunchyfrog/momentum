@@ -17,7 +17,8 @@ NotForStudying = [
 AllowAnonymousMessages = [
   720769667542679684,
   726537265626742825,
-  759869477344116766
+  759869477344116766,
+  1098356396057182288
 ]
 
 CommandUsage = [
@@ -48,7 +49,7 @@ VCCamOn = 884074578228416522
 
 # Meta (locked) voice channels to display messages. List should be in order with the channel orders in the guild.
 Broadcasting = [
-  882963985157210145,
+  1132313479546667028,
   884071324971061268
 ]
 
