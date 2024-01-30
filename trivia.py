@@ -25,7 +25,7 @@ questions = [
   ["What year did Bob Ross die?", "1995", 2, 1],
   ["What month in 2009 did the game Minecraft first release?", "May", 1, 3],
   ["What is Kramer's (from Seinfeld) first name?", "Cosmo", 2, 2],
-  ["What density does water normally have?", "0", 0, 4],
+  ["What density does water normally have?", "1", 0, 4],
   ["Density is calculated by dividing mass by...", "volume", 1, 4],
   ["Linux is a(n)...", "kernel", 1, 0],
   ["When did the first world war end?", "1918", 0, 6],
