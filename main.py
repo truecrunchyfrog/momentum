@@ -9,7 +9,7 @@ Copyright crunchyfrog (https://github.com/javaveryhot) Dec 2020 - June 2023
 '''
 
 
-import os, pymongo, time, datetime, asyncio, random, math, requests, sys, hashlib, cld3, flag, re
+import os, pymongo, time, datetime, asyncio, random, math, requests, sys, hashlib, flag, re
 import discord
 from discord.ext import commands
 from keep_alive import keep_alive
@@ -956,62 +956,6 @@ async def on_message(message):
           except:
             pass
 
-      # Language detection
-
-      if len(lc) >= 5 and len(lc) <= 300 and len(re.sub(r"<:\w*:\d*>", "", lc)) > 6 and not lc.startswith("https://"):
-        lang_detection = cld3.get_language(lc)
-        if lang_detection.language != "en" and lang_detection.is_reliable and lang_detection.probability > 0.95 and lang_detection.proportion > 0.75 and foreignlangusagecol.count_documents({"content": enhash(lc), "date": {"$gt": time.time() - 60 * 60 * 5}}) == 0 and lc != GoogleTranslator(source=lang_detection.language, target="en").translate(lc):
-          lang_ban = GetUserAttr(message.author.id, "foreign_lang_ban")
-          if lang_ban is not None and lang_ban[0] == lang_detection.language and lang_ban[1] > time.time():
-            await message.channel.send(message.author.mention + " Your message has been deleted because you have been temporarily disallowed from using this language in this server for a while.", delete_after=15)
-            await message.delete()
-          else:
-            foreignlangusagecol.insert_one({
-              "user": message.author.id,
-              "lang": lang_detection.language,
-              "date": time.time(),
-              "content": enhash(lc)
-            })
-            lang_display_name = "[unknown language]"
-            try:
-              lang_display_name = Locale.parse(lang_detection.language).get_display_name("en_US")
-            except:
-              pass
-            excession_border = time.time() - 60 * 60
-            if foreignlangusagecol.count_documents({"user": message.author.id, "lang": lang_detection.language, "date": {"$gt": excession_border}}) > 10:
-              SetUserAttr(message.author.id, "foreign_lang_ban", [lang_detection.language, time.time() + 60 * 60 * 12])
-              embed = discord.Embed()
-              embed.title = "Excessive usage of " + lang_display_name
-              embed.description = f"Hello, {message.author.name}!\nI have detected an excessive usage of the language {lang_display_name} from you.\nThis is a humble reminder of our first rule; *refrain from using languages other than English*.\nPlease consider speaking in English instead or taking your conversation privately, to make the whole server feel involved and not only those who speak {lang_display_name}.\n<:CryingCat:981309587779121212> **Messages you send during the next 12 hours in {lang_display_name} will now be deleted to prevent recursive behaviour.**\nThank you in advance!"
-              embed.colour = 0xba8c55
-              try:
-                await message.author.send(embed=embed)
-              except:
-                await message.reply(embed=embed)
-            foreignlangusagecol.delete_many({"user": message.author.id, "date": {"$lt": excession_border}})
-            flag_remapping_values = {
-              "sv": "se",
-              "zh": "cn",
-              "mr": "in",
-              "el": "gr",
-              "ca": "es"
-            }
-            flag_code = lang_detection.language if not lang_detection.language in flag_remapping_values else flag_remapping_values[lang_detection.language]
-            flag_emoji = flag.flag(flag_code)
-            try:
-              await message.add_reaction(flag_emoji)
-            except:
-              flag_emoji = "🏁"
-              await message.add_reaction(flag_emoji)
-            def check(reaction, user):
-              return user.id != bot.user.id and reaction.message.id == message.id and reaction.emoji == flag_emoji
-            try:
-              reaction, user = await bot.wait_for("reaction_add", timeout=60, check=check)
-            except asyncio.TimeoutError:
-              await message.clear_reaction(flag_emoji)
-            else:
-              await message.clear_reaction(flag_emoji)
-              await message.reply(f"*Translated from {lang_display_name}:*\n`" + GoogleTranslator(source=lang_detection.language, target="en").translate(lc) + "`" + (f"\n||{lang_detection}||" if lc.startswith(";") else ""), mention_author=False)
     elif message.channel.id not in channels.CommandUsage and not message.author.id in whitelist.admins:
       await message.channel.send(message.author.mention + " **Sorry, but you may not use commands in this channel!** Please use a dedicated channel instead.\nDo you believe that this is faulty? Contact us.", delete_after=10)
       return
