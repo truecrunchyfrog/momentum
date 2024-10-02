@@ -587,10 +587,12 @@ async def CheckMonthlyLeaderboardReset(force=False):
             break
       if not n3mem:
         return
-      await n1mem.add_roles(discord.utils.get(bot.guilds[0].roles, id=713478276479451206))
+      winner_role_id = 713478276479451206
+      await n1mem.add_roles(discord.utils.get(bot.guilds[0].roles, id=winner_role_id))
+      temprolescol.delete_many({ "user": n1mem.id, "role": winner_role_id })
       temprolescol.insert_one({
         "expires": time.time() + delay,
-        "role": 713478276479451206,
+        "role": winner_role_id,
         "user": n1mem.id
       })
       await n1mem.edit(nick="👑 " + n1mem.name)
