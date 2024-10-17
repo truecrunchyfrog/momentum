@@ -4074,7 +4074,7 @@ async def raw(ctx):
     await ctx.reply("```md\n" + content + "\n```")
 
 @bot.command()
-async def revertsession(ctx, aid=None):
+async def revertsession(ctx, aid=None, *, studytime=None):
     if aid is None:
       await ctx.reply("You must provide the archive ID to revert the session. Please try again! The archive ID can be found at the bottom of the session result message.")
       return
@@ -4092,6 +4092,14 @@ async def revertsession(ctx, aid=None):
         await ctx.reply("You must be either an admin or the owner of this session to revert it.")
         return
     await ctx.reply(f"Session belongs to {member.name}.\nReverting the session earnings and deleting archive...\nContained data: ||`{doc}`||")
+    if studytime is not None:
+        time_to_remove = StringToTime(studytime)
+        total_time = doc.get("studytime")
+        if time_to_remove > total_time:
+            await ctx.reply("Cannot revert more time than the session contained.")
+            return
+        await ctx.reply(f"Reverting only `{GetTimeString(time_to_remove)}` of `{GetTimeString(total_time)}`.")
+        await simstudy(ctx, user=member, studytime=GetTimeString(total_time - time_to_remove))
     SetUserAttr(member.id, "studytime", GetUserAttr(member.id, "studytime") - doc.get("studytime"))
     TakeUserCoins(member.id, doc.get("coins"))
     AddUserTokens(member.id, -doc.get("studytokens"))
