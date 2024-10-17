@@ -4085,7 +4085,6 @@ async def raw(ctx):
     await ctx.reply("```md\n" + content + "\n```")
 
 @bot.command()
-@admin_only()
 async def revertsession(ctx, aid=None):
     if aid is None:
       await ctx.reply("You must provide the archive ID to revert the session. Please try again! The archive ID can be found at the bottom of the session result message.")
@@ -4097,10 +4096,13 @@ async def revertsession(ctx, aid=None):
       return
     doc = sessionarchivecol.find_one({"_id": aid})
     if doc is None:
-      await ctx.reply("No archive was found with such ID! Make sure that you copied the code from the bottom of the session result message. If you did, the archive was probably deleted. Archives older than 2 days are purged when the archive count reaches 500.")
+      await ctx.reply("No archive was found with such ID! Make sure that you copied the code from the bottom of the session result message. If you did, the archive was probably deleted. Archives older than 2 days are purged when the total archive count reaches 500.")
       return
     member = bot.guilds[0].get_member(doc.get("user"))
-    await ctx.reply(f"Session belongs to {member.name}.\nReverting the session earnings and deleting archive...\nContained data: `{doc}`")
+    if not ctx.author.id in whitelist.admins and member.id != ctx.author.id:
+        await ctx.reply("You must be either an admin or the owner of this session to revert it.")
+        return
+    await ctx.reply(f"Session belongs to {member.name}.\nReverting the session earnings and deleting archive...\nContained data: ||`{doc}`||")
     SetUserAttr(member.id, "studytime", GetUserAttr(member.id, "studytime") - doc.get("studytime"))
     TakeUserCoins(member.id, doc.get("coins"))
     AddUserTokens(member.id, -doc.get("studytokens"))
