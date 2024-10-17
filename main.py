@@ -1440,21 +1440,10 @@ async def StopStudying(member_id, simulated=False, simulator=0):
         embed.description = f"<a:greatwork:961366842868367370> Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n<a:greatwork:961366842868367370> [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens <:book:816522587424817183>" if not NoTokens(member.id) else "") + f"\n\n<a:greatwork:961366842868367370> [`+{earncoins:,d}`](https://. \"Earned coins\") coins <:famcoin2:845382244554113064>" + ("\n\n<a:greatwork:961366842868367370> Camera/screenshare bonus!" if used_cam else "") + (f"\n\n<a:greatwork:961366842868367370> <:beaver_2:841722221671743488> Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n<a:greatwork:961366842868367370> Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n<a:greatwork:961366842868367370> {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n<:WokePepe:728196813412106270> Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n<a:greatwork:961366842868367370> You got closer to your study goal" if hasgoal else "")
         embed.colour = 0x36393f#0x67356b
         randomquote = random.choice([
-          #"\"Better luck next time\" is maybe what I would have said if it wasn't successful, but I'll say it anyway because I do hope you get even better luck next time.",
-          #"God didn't build the world in a day, but I bet they studied hard which is why he was successful... partly.",
-          "All my friends wish to tell you good luck!",
-          "Steal the garlic.",
-          "Steal the onion.",
-          "Zeref is disappointed (not at you).",
-          "Calu is happy.",
-          "Blue is happy.",
-          "Mia is happy.",
-          "I have a name for you!",
-          "Does not run.",
           "I hope you will appreciate your return.",
           "I admire you!",
-          "I love you, " + member.name + "!",
-          "ILY " + member.name + "!!!!",
+          f"I love you, {member.name}!",
+          f"ILY {member.name}!!!!",
           "Even better now.",
           "With great success comes great success.",
           "Can you see me?",
@@ -1466,7 +1455,6 @@ async def StopStudying(member_id, simulated=False, simulator=0):
           "Now, time for 🍰.",
           "I am speechless.",
           "Your company here? (ʘ ͜ʖ ʘ) Call 159.89.141.152.",
-          "I am without speech.",
           "Congratulations!",
           "D_D"
         ])
