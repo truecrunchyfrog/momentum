@@ -741,7 +741,7 @@ async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
       embed.set_author(name=f"Study Fam Trivia: {i + 1} out of {qc}")
       embed.title = question[0]
       author = bot.guilds[0].get_member(question[4]) if len(question) > 4 else None
-      desc = (f"[Community question by {sanitize(author.name)}](https://duck.com \"Trivia author\")\n" if len(question) > 4 else "") + f"Difficulty: `{trivia.diffs[question[2]]}`\nGenre: `{trivia.genres[question[3]]}`\n*Type the answer!*"
+      desc = (f"[Community question by {sanitize(author.name)}](https://. \"Trivia author\")\n" if len(question) > 4 else "") + f"Difficulty: `{trivia.diffs[question[2]]}`\nGenre: `{trivia.genres[question[3]]}`\n*Type the answer!*"
       embed.description = desc
       embed.colour = discord.Colour.orange()
       qmsg = await channel.send(embed=embed)
@@ -1170,7 +1170,7 @@ async def on_command_error(ctx, error):
       await ctx.send("Expected a member.")
     elif isinstance(error, commands.CommandNotFound):
       await ctx.send(embed=discord.Embed(
-        description=f"<a:thisisfine:856617800395259904> Sorry! No such command: [`{sanitize(ctx.invoked_with)}`](https://duck.com) could be found.\nRun `mom help` and see if you can find what you are looking for.\nYou can also ask staff to help you find it.",
+        description=f"<a:thisisfine:856617800395259904> Sorry! No such command: [`{sanitize(ctx.invoked_with)}`](https://.) could be found.\nRun `mom help` and see if you can find what you are looking for.\nYou can also ask staff to help you find it.",
         colour=0x2f3136
       ))
     elif isinstance(error, NotAdmin):
@@ -1581,7 +1581,7 @@ async def stats(ctx, user: discord.Member=None):
     prog = lvlinfo["progress"]
     req = lvlinfo["required"]
     rem = lvlinfo["remaining"]
-    embed.add_field(name="<:4813bigbrain:861353869216841769> Experience", value=f"[{prog:,d}" + " / " + f"{req:,d}](https://duck.com \"{rem:,d} left\")" + " (" + str(lvlinfo["progresspercent"]) + "%)")
+    embed.add_field(name="<:4813bigbrain:861353869216841769> Experience", value=f"[{prog:,d}" + " / " + f"{req:,d}](https://. \"{rem:,d} left\")" + " (" + str(lvlinfo["progresspercent"]) + "%)")
 
     #embed.add_field(name="<:beaver_2:841722221671743488> Bump contributions", value=f'{GetUserAttr(user.id, "bump_count") or "No contributions yet!"}')
 
@@ -1591,7 +1591,7 @@ async def stats(ctx, user: discord.Member=None):
     cardcount = len(GetUserAttr(user.id, "card_inventory") or [])
     embed.add_field(name="<:crunchys:861351443004915712> Trade cards", value=cardcount if cardcount > 0 else "No trade cards yet!")
 
-    embed.description = "**[`  " + (" " * 11) + str(lvlinfo["level"]) + (" " * (11 - len(str(lvlinfo["level"])))) + "  `](https://duck.com \"Level\")**\n"
+    embed.description = "**[`  " + (" " * 11) + str(lvlinfo["level"]) + (" " * (11 - len(str(lvlinfo["level"])))) + "  `](https://. \"Level\")**\n"
     BAR_ON = "<:progress_solid_on:891446235582590986>"
     BAR_OFF = "<:progress_solid_off:891446323767803934>"
     for i in range(10):
@@ -1694,11 +1694,11 @@ async def leaderboard(ctx, page=None):
       mem = bot.guilds[0].get_member(user.get("_id"))
       name = sanitize(mem.name if mem else "<User left server>")
       st = user.get("studytokens")
-      embed.description += "[`#" + str(i) + ("🥇" if i == 1 else "") + "`](https://duck.com \"Rank\") **" + name + "**" + (" [**  ⟵ YOU**](https://duck.com \"This is you\")" if user.get("_id") == ctx.author.id else "") + "\n⤷  " + f"{st:,d}" + "\n"
+      embed.description += "[`#" + str(i) + ("🥇" if i == 1 else "") + "`](https://. \"Rank\") **" + name + "**" + (" [**  ⟵ YOU**](https://. \"This is you\")" if user.get("_id") == ctx.author.id else "") + "\n⤷  " + f"{st:,d}" + "\n"
     if i == ii:
       embed.description = "Empty page."
     selfrank = GetUserRank(ctx.author.id)
-    embed.description += f'\nYour leaderboard rank is [`{selfrank or "unavailable"}`](https://duck.com "{sanitize(ctx.author.name)}\'s rank")'
+    embed.description += f'\nYour leaderboard rank is [`{selfrank or "unavailable"}`](https://. "{sanitize(ctx.author.name)}\'s rank")'
     if selfrank is None:
       embed.description += "\n[Why am I not shown on the leaderboard?](https://discord.com/channels/712808127539707927/713177565849845849/831853167858942012 \"Click to see why you are not shown on the leaderboard\")"
     embed.colour = 0x2f3136
@@ -1712,7 +1712,7 @@ async def help(ctx, *, showcategory=None):
     if showcategory is None:
       embed.description = f"Hey!\n**Momentum** is the bot for Study Fam. I will keep track of your studying, and at the same time serve much more features to keep your stay here as great as possible.\nAll you have to do is join a voice channel and get studying!\nThese are just some of the things I serve:\n• Tracking your studying\n• Leaderboard\n• Tools, preferences and options\n**Questions? Suggestions?** [Feel free to ask us](https://discord.com/channels/712808127539707927/857739970978775040/858281583348547584 \"Click to ask a question or suggest something\") or [see common questions and answers](https://discord.com/channels/712808127539707927/713177565849845849/845653574990168065 \"Click to see a list of common questions and their answers\").\n\nType `mom help <category>` to see the commands of a category."
       for categ in helpmenu:
-        embed.description += f'\n\n☞ [**{categ["name"]}**](https://duck.com \'Type "mom help {categ["name"]}" to see the commands of this category\')\n{categ.get("description") or "No description."}\n*{len(categ["commands"])} commands*'
+        embed.description += f'\n\n☞ [**{categ["name"]}**](https://. \'Type "mom help {categ["name"]}" to see the commands of this category\')\n{categ.get("description") or "No description."}\n*{len(categ["commands"])} commands*'
       embed.colour = 0x4f771a
     else:
       chosencateg = None
@@ -1734,7 +1734,7 @@ async def help(ctx, *, showcategory=None):
           for param in command[0]:
             cmdusage += " " + ("<" if param[0] else "[") + param[1] + (">" if param[0] else "]")
           fullcmdusage = "mom " + cmdname + cmdusage
-          embed.description += f'\n\n❯ [`{cmdname}`](https://duck.com "{fullcmdusage}"){"||`" + cmdusage + "`||" if len(command[0]) > 0 else ""} {command[1]}'
+          embed.description += f'\n\n❯ [`{cmdname}`](https://. "{fullcmdusage}"){"||`" + cmdusage + "`||" if len(command[0]) > 0 else ""} {command[1]}'
           embed.colour = 0x495619
       else:
         embed.description = "<:download1:739540738223898635> Uh, I could not find that category. Use `mom help` to see a list of categories."
@@ -1823,7 +1823,7 @@ async def pay(ctx, user: discord.Member=None, amount=None):
       "If you have no interest in banking...\nyou are not a loan.",
       "Why did the bank owner buy cows?\nTo beef up security."
     ])
-    embed.description = f"{ctx.author.mention} gave [`{amount:,d}`](https://duck.com \"Coins given\") coins to {user.mention}.\n\n{user.mention} now has `{GetUserCoins(user.id):,d}` coins!\n\nTHANK YOU FOR TRANSFERING MONEY WITH ME, HERE'S YOUR REWARD:\n> " + randomPun
+    embed.description = f"{ctx.author.mention} gave [`{amount:,d}`](https://. \"Coins given\") coins to {user.mention}.\n\n{user.mention} now has `{GetUserCoins(user.id):,d}` coins!\n\nTHANK YOU FOR TRANSFERING MONEY WITH ME, HERE'S YOUR REWARD:\n> " + randomPun
     embed.colour = 0x45725b
     embed.set_thumbnail(url="https://icons.iconarchive.com/icons/aha-soft/business-toolbar/48/payment-icon.png")
     await ctx.send(ctx.author.mention, embed=embed)
@@ -2110,7 +2110,7 @@ async def roleshop(ctx):
     embed.description = "In the role shop you can use your well earned coins to buy roles for **channel access and other exclusive abilities**.\nType `mom buyrole [role]` to buy a role.\n**NOTE:** This is the __role__ shop. If you want to buy cards, use `mom packshop` instead.\n"
     for itemname in shopitems:
       item = shopitems[itemname]
-      embed.description += f"\n☞ [`{itemname}`](https://duck.com \"Role name\") <:famcoin2:845382244554113064> `{item[0]:,d}`" + (f" • **Lasts {GetTimeString(item[3])}**" if len(item) >= 4 else "") + (f" (**[OWNED](https://duck.com \"You own this role, and you cannot buy it\")**)" if discord.utils.get(ctx.author.roles, id=item[2]) else "") + f"\n{item[1]}\n"
+      embed.description += f"\n☞ [`{itemname}`](https://. \"Role name\") <:famcoin2:845382244554113064> `{item[0]:,d}`" + (f" • **Lasts {GetTimeString(item[3])}**" if len(item) >= 4 else "") + (f" (**[OWNED](https://. \"You own this role, and you cannot buy it\")**)" if discord.utils.get(ctx.author.roles, id=item[2]) else "") + f"\n{item[1]}\n"
     embed.colour = 0x843946
     embed.set_thumbnail(url="https://icons.iconarchive.com/icons/kyo-tux/basket/128/basket-full-icon.png")
     embed.set_footer(text="Use \"mom roles\" to see what temporary roles you own and when they expire.")
@@ -2170,7 +2170,7 @@ async def packshop(ctx):
       for cardid in owncards:
         if cardid in pack["cards"] and not cardid in cardsownedc:
           cardsownedc.append(cardid)
-      embed.description += f'\n☞ [`{packname}`](https://duck.com "Pack name") <:famcoin2:845382244554113064> `{pack["cost"]:,d}` ({len(pack["cards"])} possible cards)' + (f' - **{round((len(cardsownedc) / len(pack["cards"])) * 100)} % collected**' if len(cardsownedc) > 0 else "") + f'\n{pack["description"]}\n'
+      embed.description += f'\n☞ [`{packname}`](https://. "Pack name") <:famcoin2:845382244554113064> `{pack["cost"]:,d}` ({len(pack["cards"])} possible cards)' + (f' - **{round((len(cardsownedc) / len(pack["cards"])) * 100)} % collected**' if len(cardsownedc) > 0 else "") + f'\n{pack["description"]}\n'
     embed.colour = 0x136c8c
     embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/783066135662428180/851746324961558538/unknown.png")
     await ctx.send(embed=embed)
@@ -2215,7 +2215,7 @@ async def buypack(ctx, packname=None):
           }, upsert=True)
           dupecount = GetUserAttr(ctx.author.id, "card_inventory").count(card)
           embed = discord.Embed()
-          embed.description = f'<:shibacheer:720961100375523369> The pack contained:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://duck.com "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
+          embed.description = f'<:shibacheer:720961100375523369> The pack contained:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://. "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
           embed.set_image(url="attachment://tradecard.png")
           embed.colour = tradecards.rarity_colours[cardobj["rarity"]]
           await ctx.send(ctx.author.mention, file=file, embed=embed)
@@ -2237,7 +2237,7 @@ async def mycards(ctx):
     embed.description = f'This is your card collection.\n`{len(fixed)}/{len(tradecards.tradecards)}` unique cards (`{len(cards)}` in total).\nUse `mom cardinfo <card>` to see information about a card.\n'
     for card in fixed:
       count = cards.count(tradecards.tradecards.index(card))
-      embed.description += f'\n\n[`{card["name"]}`](https://duck.com "Card name") {"**{0}x** ".format(count) if count != 1 else ""}{tradecards.rarity_emojis[card["rarity"]]}'
+      embed.description += f'\n\n[`{card["name"]}`](https://. "Card name") {"**{0}x** ".format(count) if count != 1 else ""}{tradecards.rarity_emojis[card["rarity"]]}'
     if len(fixed) == 0:
       embed.description += "\nYou own no cards yet."
     embed.set_thumbnail(url="https://icons.iconarchive.com/icons/be-os/be-box/32/Be-Card-Stack-icon.png")
@@ -2286,7 +2286,7 @@ async def cardinfo(ctx, *, cardname=None):
 
     embed = discord.Embed()
     embed.title = card["name"]
-    embed.description = (f'*{sanitize(card["quote"])}*\n\nRarity: {tradecards.rarity_emojis[card["rarity"]]} `{tradecards.rarities[card["rarity"]]}`\nMade by: {author.mention if author else "Unknown"}\nYou own: [`{owncount}x`](https://duck.com \"You have this many of this card\")\n' if owncount > 0 else "") + f'{totalowners} people have this card'
+    embed.description = (f'*{sanitize(card["quote"])}*\n\nRarity: {tradecards.rarity_emojis[card["rarity"]]} `{tradecards.rarities[card["rarity"]]}`\nMade by: {author.mention if author else "Unknown"}\nYou own: [`{owncount}x`](https://. \"You have this many of this card\")\n' if owncount > 0 else "") + f'{totalowners} people have this card'
     if owncount > 0:
       embed.colour = tradecards.rarity_colours[card["rarity"]]
       embed.set_image(url="attachment://tradecard.png")
@@ -2811,7 +2811,7 @@ async def UpdateBountyMessage(refid):
     description = doc.get("description")
     embed = discord.Embed()
     embed.title = "<a:doge_dance:728195752123433030> New Bounty!"
-    embed.description = f"Fellow officers, here is a bounty.\nClaim it with `mom claimbounty {refid}`!\n\nCreated by: {provider.mention}\nChallenge: `{description}`\nPrize: <:famcoin2:845382244554113064> `{deposit:,d}`\nClaim status: [{statusicon} **{statusmode}**](https://duck.com \"Whether this bounty is claimable or not\")" + (" (<@" + str(doc.get("claimed_by")) + ">)" if doc.get("claimed") else "")
+    embed.description = f"Fellow officers, here is a bounty.\nClaim it with `mom claimbounty {refid}`!\n\nCreated by: {provider.mention}\nChallenge: `{description}`\nPrize: <:famcoin2:845382244554113064> `{deposit:,d}`\nClaim status: [{statusicon} **{statusmode}**](https://. \"Whether this bounty is claimable or not\")" + (" (<@" + str(doc.get("claimed_by")) + ">)" if doc.get("claimed") else "")
     embed.set_thumbnail(url="https://i.imgur.com/SchZkD8.png")
     embed.colour = 0x7a3333
     await msg.edit(content="", embed=embed)
@@ -3193,7 +3193,7 @@ async def mergecards(ctx):
           }, upsert=True)
           dupecount = GetUserAttr(ctx.author.id, "card_inventory").count(card)
           embed = discord.Embed()
-          embed.description = f'<:shibacheer:720961100375523369> You merged `{requiredcards}` `{tradecards.rarities[mergerarity]}` cards into one:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://duck.com "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
+          embed.description = f'<:shibacheer:720961100375523369> You merged `{requiredcards}` `{tradecards.rarities[mergerarity]}` cards into one:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://. "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
           embed.set_image(url="attachment://tradecard.png")
           embed.colour = tradecards.rarity_colours[cardobj["rarity"]]
           await ctx.send(ctx.author.mention, file=LoadTradecardImage(card), embed=embed)
@@ -3213,7 +3213,7 @@ async def mergecards(ctx):
         for card in fixed:
           if fixed[card] > 0 and tradecards.tradecards[card]["rarity"] == mergerarity:
             availcards += fixed[card]
-            embed.description += f'[`{tradecards.tradecards[card]["name"]}`](https://duck.com "Type a card\'s name to merge it") (**{fixed[card]}x**) '
+            embed.description += f'[`{tradecards.tradecards[card]["name"]}`](https://. "Type a card\'s name to merge it") (**{fixed[card]}x**) '
         embed.description += "\n\nType `cancel` to cancel the card merge."
         if availcards < requiredcards - len(chosencards):
           await ctx.send(f"You don't have enough `{tradecards.rarities[mergerarity]}` cards to merge them.\nYou need `{requiredcards}` but you only have `{availcards}`.")
@@ -3339,8 +3339,8 @@ async def trade(ctx, user: discord.Member=None):
           for trader in trades:
             deck = f'Coins: `{trader["coins"]:,d}`\n'
             for card in trader["cards"]:
-              deck += f'\n**{trader["cards"][card]}x** [{tradecards.tradecards[card]["name"]}](https://duck.com "Card name")'
-            deck += f'\n**[{"✓ Ready" if trader["status"] == 1 else "🞬 Not ready"}](https://duck.com "Status")**'
+              deck += f'\n**{trader["cards"][card]}x** [{tradecards.tradecards[card]["name"]}](https://. "Card name")'
+            deck += f'\n**[{"✓ Ready" if trader["status"] == 1 else "🞬 Not ready"}](https://. "Status")**'
             embed.add_field(name=ctx.author.name if i == 0 else user.name, value=deck)
             i += 1
           embed.colour = 0x3a1131
@@ -3483,7 +3483,7 @@ async def roles(ctx):
       embed.description += "\nNo temporary roles."
     else:
       for role in aroles:
-        embed.description += f"\n{role[0].mention}: Expires in **[{GetTimeString(role[1] - time.time())}](https://duck.com \"Temporary role expires\")**"
+        embed.description += f"\n{role[0].mention}: Expires in **[{GetTimeString(role[1] - time.time())}](https://. \"Temporary role expires\")**"
     embed.colour = 0xf47c3f
     embed.set_thumbnail(url="https://i.imgur.com/zHwbaVS.png")
     await ctx.send(embed=embed)
@@ -3559,7 +3559,7 @@ async def translate(ctx, fromlang=None, tolang=None, *, text=None):
     embed.set_author(name=f"{fromlang.upper()} ➔ {tolang.upper()}")
     embed.title = "Translation"
     embed.add_field(name=fromlang.upper(), value=sanitize(text))
-    embed.add_field(name=tolang.upper(), value=f"[{sanitize(translation)}](https://duck.com \"Translated into this\")")
+    embed.add_field(name=tolang.upper(), value=f"[{sanitize(translation)}](https://. \"Translated into this\")")
     embed.colour = 0x6d8409
     await ctx.send(ctx.author.mention, embed=embed)
 
@@ -3594,7 +3594,7 @@ async def stopwatch(ctx, action=None):
           settings["pause"] = None
         await ctx.send(embed=discord.Embed(
           title="Stopwatch has ended",
-          description=f'You stopped your stopwatch.\nStopwatch took [**`{GetTimeString(time.time() - settings["begin"] - settings["remove"])}`**](https://duck.com "Stopwatch took this long").',
+          description=f'You stopped your stopwatch.\nStopwatch took [**`{GetTimeString(time.time() - settings["begin"] - settings["remove"])}`**](https://. "Stopwatch took this long").',
           colour=0x96213a
         ))
         settings["begin"] = None
@@ -3613,7 +3613,7 @@ async def stopwatch(ctx, action=None):
         await ctx.send("Your stopwatch is not active.\nDo `mom stopwatch start` to start the stopwatch.")
       else:
         await ctx.send(embed=discord.Embed(
-          description=("**Stopwatch is paused**\n" if settings["pause"] is not None else f'Stopwatch has taken [**`{GetTimeString(time.time() - settings["begin"] - settings["remove"])}`**](https://duck.com "Stopwatch has taken this long so far").\n') + f'Stopwatch was started `{GetTimeString(time.time() - settings["begin"])}` ago.\n\nUse `mom stopwatch stop` to end the stopwatch or `mom stopwatch pause`/`mom stopwatch continue` to pause it or continue it.',
+          description=("**Stopwatch is paused**\n" if settings["pause"] is not None else f'Stopwatch has taken [**`{GetTimeString(time.time() - settings["begin"] - settings["remove"])}`**](https://. "Stopwatch has taken this long so far").\n') + f'Stopwatch was started `{GetTimeString(time.time() - settings["begin"])}` ago.\n\nUse `mom stopwatch stop` to end the stopwatch or `mom stopwatch pause`/`mom stopwatch continue` to pause it or continue it.',
           colour=0x29213f
         ))
     else:
