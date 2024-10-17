@@ -865,6 +865,7 @@ async def on_message(message):
         embed.colour = 0x2a7c52
         embed.set_thumbnail(url="https://icons.iconarchive.com/icons/icehouse/smurf/32/Jokeys-present-icon.png")
         await message.channel.send(embed=embed)
+        await message.delete()
       return
     if isinstance(message.channel, discord.channel.DMChannel):
       return
