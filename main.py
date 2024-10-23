@@ -1581,8 +1581,8 @@ async def stats(ctx, user: discord.Member=None):
     embed.add_field(name="<:crunchys:861351443004915712> Trade cards", value=cardcount if cardcount > 0 else "No trade cards yet!")
 
     embed.description = "**[`  " + (" " * 11) + str(lvlinfo["level"]) + (" " * (11 - len(str(lvlinfo["level"])))) + "  `](https://. \"Level\")**\n"
-    BAR_ON = "<:progress_solid_on:891446235582590986>"
-    BAR_OFF = "<:progress_solid_off:891446323767803934>"
+    BAR_ON = "<:_:816596886852599870>"
+    BAR_OFF = "<:_:816596916896530432>"
     for i in range(10):
       mode = not (lvlinfo["progresspercent"] / 10) <= i
       embed.description += BAR_ON if mode else BAR_OFF
