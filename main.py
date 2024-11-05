@@ -1068,61 +1068,10 @@ async def on_raw_reaction_add(payload):
             await message.channel.send(payload.member.mention + " You don't have the permission to end this vote!", delete_after=5)
         await UpdateVoteMessage(message)
     if payload.emoji.id == 889981889828511794:
-      # Someone reacted with the "star"-ing emoji
+      # Someone reacted with the "star"-ing emote
       message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
       await message.remove_reaction(payload.emoji, payload.member)
-      if payload.member.id == message.author.id:
-        try:
-          await payload.member.send("You cannot star your own messages.")
-        except:
-          pass
-        return
-      starcost = 300
-      try:
-        await payload.member.send(embed=discord.Embed(
-          title="<:0_momentum_star:889981889828511794> Star this message?",
-          description=f"Do you want to pay <:famcoin2:845382244554113064> `{starcost}` coins to star [{sanitize(message.author.name)}'s message]({message.jump_url})?\nTheir message will display in {bot.get_channel(channels.BeaverBoard).mention}.\nType `yes` to confirm and place the message there.",
-          colour=0x721806
-        ))
-      except:
-        await bot.get_channel(channels.BotCommands).send(f"{payload.member.mention} You tried to star a message, but I couldn't deliver the message to you. Please enable \"Direct Messages\" in your privacy settings, just temporarily if you want, while you do this.")
-        return
-      def check(m):
-        return m.author.id == payload.member.id and m.channel == payload.member.dm_channel
-      try:
-        m = await bot.wait_for("message", timeout=60, check=check)
-      except asyncio.TimeoutError:
-        return
-      else:
-        if m.content.lower() == "yes":
-          if GetUserCoins(payload.member.id) >= starcost:
-            if starcol.count_documents({"_id": message.id}) == 0:
-              TakeUserCoins(payload.member.id, starcost)
-              starcol.insert_one({"_id": message.id})
-              embed = discord.Embed()
-              embed.set_author(name=message.author.name, icon_url=message.author.display_avatar.with_size(32).url)
-              sendfiles = []
-              if len(message.attachments) == 0:
-                content = message.content
-                if len(message.embeds) > 0:
-                  content = message.embeds[0].description
-                embed.description = content or "..."
-              else:
-                for attc in message.attachments:
-                  sendfiles.append(await attc.to_file())
-                ac = len(message.attachments)
-                embed.description = str(ac) + " attachment" + ("s" if ac != 1 else "")
-              embed.description += f"\n\n[\🐸 Hop to the source]({message.jump_url} \"More like hop to the pond but this I guess this may be interpreted better\") (posted <t:{int(message.created_at.timestamp())}:R> in {message.channel.mention})"
-              embed.colour = 0xdd7863
-              embed.set_footer(text=f"Starred by: {payload.member.name}#{payload.member.discriminator}")
-              await bot.get_channel(channels.BeaverBoard).send(embed=embed, files=sendfiles)
-              await payload.member.send("The message was starred!")
-            else:
-              await payload.member.send("That message has already been starred!")
-          else:
-            await payload.member.send(f"Uh oh, you don't have enough coins to star a message! It costs `{starcost}` but you only have `{GetUserCoins(payload.member.id)}` coins.")
-        else:
-          await payload.member.send("The message was not starred.")
+      StarMessage(message, payload.member)
     if payload.member.id == 482459199213928459 and False:
       message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
       shouldAdd = True
@@ -1896,6 +1845,71 @@ async def rob(ctx, user: discord.Member=None):
           colour=discord.Colour.red()
         ))
       SetUserAttr(ctx.author.id, "last_rob", time.time())
+
+@bot.command()
+async def star(ctx):
+    if ctx.message.reference is None:
+        try:
+            await ctx.author.send("Reply to a message when using `mom star` to star it.")
+        except:
+            pass
+        return
+    await ctx.message.delete()
+    await StarMessage(ctx.message.reference.resolved, ctx.author)
+
+starcost = 300
+
+async def StarMessage(message, nominator):
+    if nominator.id == message.author.id:
+        try:
+            await nominator.send("You cannot star your own messages.")
+        except:
+            pass
+        return
+    try:
+        await nominator.send(embed=discord.Embed(
+            title="<:0_momentum_star:889981889828511794> Star this message?",
+            description=f"Do you want to pay <:famcoin2:845382244554113064> `{starcost}` coins to star [{sanitize(message.author.name)}'s message]({message.jump_url})?\nTheir message will display in {bot.get_channel(channels.BeaverBoard).mention}.\nType `yes` to confirm and place the message there.",
+            colour=0x721806
+            ))
+    except:
+        await bot.get_channel(channels.BotCommands).send(f"{payload.member.mention} You tried to star a message, but I couldn't deliver the message to you. Please enable \"Direct Messages\" in your privacy settings, just temporarily if you want, while you do this.")
+        return
+
+    def check(m):
+        return m.author.id == nominator.id and m.channel == nominator.dm_channel
+    try:
+        m = await bot.wait_for("message", timeout=60, check=check)
+    except asyncio.TimeoutError:
+        return
+    else:
+        if m.content.lower() != "yes":
+            await nominator.send("The message was not starred.")
+            return
+        coins = GetUserCoins(nominator.id)
+        if coins < starcost:
+            await nominator.send(f"Uh oh, you don't have enough coins to star a message! It costs `{starcost}` but you only have `{coins}` coins.")
+            return
+        if starcol.count_documents({"_id": message.id}) != 0:
+            await nominator.send("That message has already been starred!")
+            return
+        TakeUserCoins(nominator.id, starcost)
+        starcol.insert_one({"_id": message.id})
+        embed = discord.Embed()
+        embed.set_author(name=message.author.name, icon_url=message.author.display_avatar.with_size(32).url)
+        sendfiles = []
+        if len(message.attachments) == 0:
+            content = (message.content if len(message.embeds) == 0 else message.embeds[0].description) or "..."
+        else:
+            for attc in message.attachments:
+                sendfiles.append(await attc.to_file())
+            ac = len(message.attachments)
+            embed.description = str(ac) + " attachment" + ("s" if ac != 1 else "")
+        embed.description += f"\n\n[\🐸 Hop to the source]({message.jump_url} \"More like hop to the pond but this I guess this may be interpreted better\") (posted <t:{int(message.created_at.timestamp())}:R> in {message.channel.mention})"
+        embed.colour = 0xdd7863
+        embed.set_footer(text=f"Starred by: {nominator.name}#{nominator.discriminator}")
+        await bot.get_channel(channels.BeaverBoard).send(embed=embed, files=sendfiles)
+        await nominator.send("The message was starred!")
 
 @bot.command()
 @level_restrict(2)
