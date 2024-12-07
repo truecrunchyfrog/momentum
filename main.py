@@ -820,7 +820,7 @@ async def RemindDisboardBump():
       embed = discord.Embed()
       embed.set_author(name="BUMPING AVAILABLE!")
       embed.title = "<a:CS_Wiggle:856616923915878411> Contribute to Study Fam!"
-      embed.description = "Help the server grow by typing `/bump`."
+      embed.description = "Help the server grow by typing or clicking </bump:947088344167366698>."
       embed.colour = 0x2f3136
       await bot.get_channel(channels.BotCommands).send(embed=embed)
 
@@ -957,9 +957,9 @@ async def on_message(message):
           except:
             pass
 
-    elif message.channel.id not in channels.CommandUsage and not message.author.id in whitelist.admins:
-      await message.channel.send(message.author.mention + " **Sorry, but you may not use commands in this channel!** Please use a dedicated channel instead.\nDo you believe that this is faulty? Contact us.", delete_after=10)
-      return
+    #elif message.channel.id not in channels.CommandUsage and not message.author.id in whitelist.admins:
+      #await message.channel.send(message.author.mention + " **Sorry, but you may not use commands in this channel!** Please use a dedicated channel instead.\nDo you believe that this is faulty? Contact us.", delete_after=10)
+      #return
 
     if message.channel.id == 725451170604384308 and not (GetUserAttr(message.author.id, "dca") or False):
       await message.delete()
@@ -1408,7 +1408,7 @@ async def StopStudying(member_id, simulated=False, simulator=0):
           "D_D"
         ])
         embed.set_author(name=randomquote)
-        embed.description += f"\n\n[Disable or change location of session results?](https://discord.com/channels/712808127539707927/713177565849845849/796105551229616139 \"Click to see how you can prevent these messages from being sent to you\")" + (f"\n[SESSION WAS SIMULATED BY {simulator}]" if simulated else "")
+        embed.description += f"\n\n-# Manage session results with `mom studymessages`." + (f"\n[SESSION WAS SIMULATED BY {simulator}]" if simulated else "")
         embed.set_thumbnail(url="https://media.discordapp.net/attachments/802215570996330517/889594173861269605/momentum_session_complete.png")
         embed.set_footer(text=f"Archive ID: {archive_id}")
         if smmode is True:

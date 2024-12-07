@@ -1,7 +1,7 @@
 # Study earnings
 SilentETokens = 5 / 60
 SilentECoins = 1.8 / 60
-CamETokens = 6.5 / 60
+CamETokens = 5 / 60 # 6.5 before, was normalized on meow's request
 CamECoins = 2 / 60
 
 

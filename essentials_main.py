@@ -1,14 +1,3 @@
-'''
-WARNING!
-Please read this before inspecting any file further:
-This is the full source code for the Momentum bot.
-If you are aware of this, please don't abuse the knowledge of the source code or any other file in this project.
-Do not directly fork or distribute the source code or other content of this project for use in another public bot, thank you!
-
-Copyright crunchyfrog (https://github.com/javaveryhot) Dec 2020 - June 2023
-'''
-
-
 import os, pymongo, time, datetime, asyncio, random, math, requests, sys, hashlib, flag, re
 import discord
 from discord.ext import commands
@@ -152,16 +141,6 @@ def admin_only():
     async def check(ctx):
         if not ctx.author.id in whitelist.admins:
           raise NotAdmin()
-        return True
-    return commands.check(check)
-
-class NotCasino(commands.CheckFailure):
-    pass
-
-def casino_only():
-    async def check(ctx):
-        if not ctx.channel.id in [channels.Casino, 804002486003171338, 783066135662428180]:
-          raise NotCasino()
         return True
     return commands.check(check)
 
@@ -624,150 +603,6 @@ async def CreateTimer(timerdoc):
     timcol.delete_one({"_id": timerdoc.get("_id")})
     member = bot.guilds[0].get_member(timerdoc.get("owner"))
     await member.send("<a:doge_dance:728195752123433030> Your timer has been reached!" + (("\n`" + timerdoc.get("message") + "`") if timerdoc.get("message") != None else "") + f"\n(Timer was `" + GetTimeString(timerdoc.get("totaltimer")) + "`)")
-
-async def UpdateBroadcastTexts(force=False):
-    if datetime.datetime.now().minute % 5 == 0 or force:
-      sunmoonemoji = ""
-      hour = datetime.datetime.now().hour
-      if hour <= 4:
-        sunmoonemoji = "☀️"
-      elif hour <= 12:
-        sunmoonemoji = "🌤️"
-      elif hour <= 18:
-        sunmoonemoji = "🌞"
-      elif hour <= 20:
-        sunmoonemoji = "🌘"
-      elif hour <= 23:
-        sunmoonemoji = "🌙"
-      datetimestr = datetime.datetime.now().strftime(f"%H:%M {sunmoonemoji} %d/%m/%Y")
-      await bot.get_channel(channels.Broadcasting[0]).edit(name=datetimestr)
-      studyingpeople = studycol.count_documents({})
-      await bot.get_channel(channels.Broadcasting[1]).edit(name=f'{"👥" if studyingpeople > 0 else "💀"} {studyingpeople} {"people are" if studyingpeople != 1 else "person is"} studying')
-
-def LoadTriviaQuestions():
-    #don't update the trivia array if a game is playing. updating it during the trivia game will confuse the trivia and bugs could occur (very small chance, but still)
-    if playingtrivia:
-      return
-    global all_trivia_questions
-    all_trivia_questions = trivia.questions
-    for d in ctrcol.find():
-      all_trivia_questions.append([
-        d.get("question"), # question
-        d.get("answer"), # answer
-        d.get("difficulty"), # difficulty
-        d.get("genre"), # genre
-        d.get("author") # trivia author id
-      ])
-
-
-
-async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
-    channel = bot.get_channel(channel)
-    global playingtrivia
-    if playingtrivia:
-      await channel.send("<a:download1:745404052598423635> Tried to start a game of trivia, but there is already one right now.")
-      return
-    if questions > 50:
-      await channel.send("Cannot start trivia with more than 50 questions.")
-      return
-    if questions < 1:
-      await channel.send("Cannot start trivia with less than 1 question.")
-      return
-    if delay > 5 * 60:
-      await channel.send("Cannot set trivia delay to higher than 5 minutes.")
-      return
-    playingtrivia = True
-    #triviarole = discord.utils.get(bot.guilds[0].roles, id=836660898302132254)
-    lmsg = await channel.send("Initializing...")
-    lstr = ""
-    for i in range(delay):
-      timeleft = delay - i + 1
-      cstr = GetTimeString(timeleft)
-      if i % 5 == 1 and not cstr == lstr:
-        lstr = cstr
-        asyncio.get_event_loop().create_task(lmsg.edit(content="",
-        embed=discord.Embed(
-          title=f"Game of Trivia: Starting in {cstr}",
-          description=f"\n<a:CS_Wiggle:856616923915878411> Playing with **{questions}** questions.\n*How to play: There will be a few questions shown here, type the answer to the question when they occur. Your first message will count as your answer and be deleted to not show others what you typed. Later messages will not be deleted, to allow you to continue sending messages.*\n**Please read the following before playing:**\n• Do not cheat by searching for the answer or by looking at what other people are typing.\n• Let the other members guess too; don't give them the answer.\n• Do not send many messages to make the trivia message harder to see.",
-          colour=0xd88e58
-          )))
-      await asyncio.sleep(1)
-    await lmsg.delete()
-    totalresults = {}
-    usedqs = []
-    def randomqs(am=0):
-      if am >= 750:
-        return None
-      attempt = random.randint(0, len(all_trivia_questions) - 1)
-      return attempt if not attempt in usedqs else randomqs(am + 1)
-    qc = questions
-    for i in range(qc):
-      randidx = randomqs()
-      if randidx == None:
-        await channel.send("Oh no! Ran out of questions or could not load unused random question after 750 attempts...")
-        break
-      question = trivia.questions[randidx]
-      usedqs.append(randidx)
-      # Question, array;
-      # 0 - Question string (with "?" or "..." etc.)
-      # 1 - Answer (lowercase, cannot contain "-" etc.)
-      # 2 - Difficulty (0-3, easy-hard)
-      # 3 - Genre
-      embed = discord.Embed()
-      embed.set_author(name=f"Study Fam Trivia: {i + 1} out of {qc}")
-      embed.title = question[0]
-      author = bot.guilds[0].get_member(question[4]) if len(question) > 4 else None
-      desc = (f"[Community question by {sanitize(author.name)}](https://. \"Trivia author\")\n" if len(question) > 4 else "") + f"Difficulty: `{trivia.diffs[question[2]]}`\nGenre: `{trivia.genres[question[3]]}`\n*Type the answer!*"
-      embed.description = desc
-      embed.colour = discord.Colour.orange()
-      qmsg = await channel.send(embed=embed)
-      qstart = time.time()
-      answers = {}
-      def check(m):
-        return m.channel.id == channel.id and not m.author.id in answers and not m.author.bot and not (len(question) > 4 and question[4] == m.author.id)
-      while True:
-        qtimeleft = 40 - (time.time() - qstart)
-        if qtimeleft < 0:
-          break
-        try:
-          m = await bot.wait_for("message", timeout=qtimeleft, check=check)
-        except asyncio.TimeoutError:
-          break
-        else:
-          await m.delete()
-          answers[m.author.id] = m.content.lower()
-          embed.description = desc + f"\n\n{len(answers)} have answered..."
-          asyncio.get_event_loop().create_task(qmsg.edit(embed=embed))
-      correctanswers = []
-      for uid in answers:
-        efi = easyfy(answers[uid])
-        efa = easyfy(question[1])
-        if efi == efa:
-          correctanswers.append(uid)
-          totalresults[uid] = (totalresults[uid] + 1 if uid in totalresults else 1)
-          await AddExperience(channel, uid, [40, 70, 100][question[2]])
-        else:
-          await AddExperience(channel, uid, 5)
-      embed.description = "Answer: **`" + (question[1]) + "`**\n*" + str(len(correctanswers)) + " out of " + str(len(answers)) + " people answered correctly.*\n\n" + ("<a:nom_party:720961569730592819> **Get ready for the next question!**" if i != qc - 1 else "<:thankyou:720988612040065135> **Thank you for playing! Wait to see the results...**")
-      embed.colour = discord.Colour.green()
-      await qmsg.edit(embed=embed)
-      await asyncio.sleep(15)
-      await qmsg.delete()
-      if i == qc - 1:
-        embed = discord.Embed()
-        embed.set_author(name="Thank you for playing some trivia!")
-        embed.description = "" if len(totalresults) != 0 else "No results."
-        embed.set_footer(text="This message will disappear soon.")
-        for user in totalresults:
-          embed.description += f"<@{user}> - `{totalresults[user]}/{qc}`\n"
-        embed.colour = discord.Colour.blurple()
-        rmsg = await channel.send(embed=embed)
-        playingtrivia = False
-        await asyncio.sleep(40)
-        await rmsg.delete()
-
-
-
 
 async def CollectTaxes():
     idstr = "collect_taxes"
@@ -3559,15 +3394,6 @@ callback_count = 0
 exceeded_size = None
 
 @bot.command()
-@admin_only()
-async def raw(ctx):
-    if not ctx.message.reference:
-      await ctx.reply("You have to reply to a message to see its formatting.")
-      return
-    content = (await bot.get_channel(ctx.message.reference.channel_id).fetch_message(ctx.message.reference.message_id)).content
-    await ctx.reply("```md\n" + content + "\n```")
-
-@bot.command()
 async def revertsession(ctx, aid=None, *, studytime=None):
     if aid is None:
       await ctx.reply("You must provide the archive ID to revert the session. Please try again! The archive ID can be found at the bottom of the session result message.")
@@ -3608,41 +3434,6 @@ async def revertsession(ctx, aid=None, *, studytime=None):
     })
     await ctx.send("Revert successful. Earnings were removed.")
 
-@bot.command()
-@admin_only()
-async def mkdon(ctx, member: discord.Member=None, donation=None):
-    if member is None:
-      await ctx.reply("No donator was provided.")
-      return
-    if donation is None:
-      await ctx.reply("No donation amount was provided.")
-      return
-    try:
-      donation = float(donation)
-    except ValueError:
-      await ctx.reply(f"Donation value (`{donation}`) is not a number.")
-      return
-    SetUserAttr(member.id, "donations", (GetUserAttr(member.id, "donations") or 0) + donation)
-    donrole = discord.utils.get(bot.guilds[0].roles, id=960976176057319444)
-    await member.add_roles(donrole)
-    temprolescol.insert_one({
-      "expires": time.time() + 30 * 24 * 60 * 60 * math.ceil (donation / 5),
-      "role": 960976176057319444,
-      "user": member.id
-    })
-    await bot.get_channel(channels.General).send(embed=discord.Embed(
-      title="╮(╯▽╰)╭",
-      description=f"{member.mention} has made a donation! Thank you so much!\nThe money will be used for the continued development and uptime of this bot, Momentum.",
-      colour=0xd88e34
-    ))
-    await ctx.reply("Donation added!")
-
-@bot.command()
-@admin_only()
-async def stop(ctx):
-    await ctx.reply("Stopping...")
-    sys.exit()
-
 @bot.command(aliases=["week"])
 async def weekly(ctx):
     this_week_doc = weeklystatscol.find_one({"user": ctx.author.id, "week": int(time.time() / 60 / 60 / 24 / 7)}) or {"studytime": 0}
@@ -3667,32 +3458,3 @@ async def reset_leaderboard(ctx, *, confirm=None):
     await ctx.reply("Reset the leaderboard!")
   else:
     await ctx.reply("Please rerun the command and append the **current day of the month, month, and year**, all separated by spaces in that order to confirm the leaderboard reset.")
-
-@bot.command(aliases=["reboot", "r"])
-async def restart(ctx):
-    await ctx.reply("Rebooting...")
-    botactivitycol.update_one({"_id": 1}, {
-      "$set": {"reboot_chan": ctx.channel.id, "timestamp": time.time()}
-    }, upsert=True)
-    os.system("busybox reboot")
-
-
-@bot.command(aliases=["calmme", "exercise", "breath", "calming", "breathing"])
-async def calm(ctx):
-  await ctx.reply("https://tenor.com/view/breathe-countdown-meditate-breathe-out-hold-gif-17698260")
-
-@bot.command(aliases=["helpmefocus", "adhd", "distract", "distraction", "focusing", "helpfocus", "focushelp", "distracted"])
-async def focus(ctx):
-  await ctx.reply("https://media.giphy.com/media/3oz8y07PqQ3PGo4fe0/giphy.gif")
-
-@bot.command(aliases=["coolbreath", "energybreath", "energizing", "energization", "breathenergy"])
-async def energy(ctx):
-  await ctx.reply("https://media.giphy.com/media/UW8VVu5c2OBUy43cos/giphy.gif")
-
-
-try:
-  bot.run(os.getenv("DISCORD_TOKEN"))
-except discord.errors.HTTPException:
-  print("REBOOTING...")
-  time.sleep(5)
-  os.system("busybox reboot")
