@@ -845,18 +845,6 @@ last_self_message_time = 0
 @bot.event
 async def on_message(message):
     if message.author.bot:
-      if message.author.id == bot.user.id:
-        global last_self_message_hash, last_self_message_time
-        msg_hash = enhash(str(message.channel.id) + message.content + str(message.embeds[0].description if len(message.embeds) > 0 else ""))
-        if msg_hash == last_self_message_hash and time.time() - last_self_message_time < 1:
-          # Identical message detected, check if there are two instances
-          # Theoretically, both instances should get here at (approximately) the same time
-          await message.channel.send("If you see this (which you do), it seems that I have a clone that repeats whatever I do: luckily I am self-observant. To fix this, I am now rebooting. This will probably take less than 30 seconds before I'm back but right now I am unavailable. By the time that you have read this message I will probably be back up so you're not just sitting there... waiting...\nI am sorry for this short inconvenience.\nWoah! If you're a fast reader and already got this far down before I'm back (or if I have a bad comprehension of time, or if I am unusually slow to wake up), you've got to see this. This is me finishing off this clone:\nhttps://tenor.com/view/cat-jumping-fail-crazy-gif-23800115")
-          os.system("busybox reboot")
-          # Rebooting will apparently effectively kill the clone?
-          sys.exit()
-        last_self_message_hash = msg_hash
-        last_self_message_time = time.time()
       if message.author.id == 302050872383242240 and len(message.embeds) > 0 and "Bump done" in message.embeds[0].description:
         #if someone bumbed
         UpdateLoopUsed("remind_bump", 2 * 60 * 60)
@@ -3999,7 +3987,6 @@ async def ConfirmBuddyTrackingConsent(member: discord.Member):
       m = await bot.wait_for("message", timeout=5 * 60, check=check)
     except asyncio.TimeoutError:
       await confirm_msg.delete()
-      #await confirm_msg.edit(content=member.mention + " **You did not respond in time! Please use the command instead if you want to enable buddy tracking.**")
     else:
       if m.content.lower() == "yes":
         SetUserAttr(member.id, "buddy_tracking_consent", True)
