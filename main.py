@@ -3619,14 +3619,14 @@ async def stopwatch(ctx, action=None):
 
 @bot.command(aliases=["nodistract", "undistract", "nd"])
 async def togglenodistract(ctx):
-    frole = discord.utils.get(bot.guilds[0].roles, id=783777725487382570)
+    frole = discord.utils.get(bot.guilds[0].roles, id=1348738473997242389)
     hasrole = frole in ctx.author.roles
     if hasrole:
       await ctx.author.remove_roles(frole)
-      await ctx.send("<:Check:783760461556350986> Enabled no-distraction mode\nHappy studying!")
+      await ctx.send("<:Cross:783760537967394836> Disabled no-distraction mode\n__You can now see the whole server!__")
     else:
       await ctx.author.add_roles(frole)
-      await ctx.send("<:Cross:783760537967394836> Disabled no-distraction mode\n__You can now see the whole server!__")
+      await ctx.send("<:Check:783760461556350986> Enabled no-distraction mode\nHappy studying!")
 
 
 @bot.command()
