@@ -18,13 +18,13 @@ messages = [
 emojis = [
   #"<a:6643_Dank_Rainbow_Frog:731597742656323635>",
   #"<a:nom_party:720961569730592819>",
-  #"<:wow:762241502898290698>",
-  #"<:shibahey:720967927435755590>",
-  #"<:blobcute:720968544602554388>",
+  #":wow:",
+  #":shibahey:",
+  #":blobcute:",
   #"<a:giphy1:731590057395355788>",
-  #"<:blushy_froggie:731597709202686044>",
-  #"<:pandalove:720968101532794910>",
-  #"<:Kermit_Hi:731597822683643915>",
-  #"<:Luv_Blob:730063928242995266>",
-  "<:beaver_2:841722221671743488>"
+  #":blushy_froggie:",
+  #":pandalove:",
+  #":Kermit_Hi:",
+  #":Luv_Blob:",
+  ":beaver_2:"
 ]

@@ -45,14 +45,14 @@ words = [
 
 
 manimations = [
-  "<:whyy_cryy:740147838830247966>", #almost dead
-  "<:shibashock:720967877410160732>",
-  "<:shibasad:720968473496518676>",
-  "<:facepalm:739540188136734797>",
-  "<:blobtired:720960515714711641>",
+  ":whyy_cryy:", #almost dead
+  ":shibashock:",
+  ":shibasad:",
+  ":facepalm:",
+  ":blobtired:",
   "<a:goodbye_bush:739540942750613574>",
-  "<:PepeKMS:728196877732020255>",
-  "<:excusemewtf:730063874606497913>",
-  "<:thonkms:728195638134702171>",
-  "<:aww:720960928761249853>" #alive
+  ":PepeKMS:",
+  ":excusemewtf:",
+  ":thonkms:",
+  ":aww:" #alive
 ]
