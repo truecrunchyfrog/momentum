@@ -193,7 +193,7 @@ class WaitTaskMsg:
     self.text = text
     self.message = None
   async def build(self):
-    self.message = await self.chan.send(f"<a:Waiting_for_this_task_to_finish:938200044992102500>  {self.text or 'Please wait...'}")
+    self.message = await self.chan.send(f":Waiting_for_this_task_to_finish:  {self.text or 'Please wait...'}")
   async def dispose(self):
     if self.message:
       await self.message.delete()
@@ -257,7 +257,7 @@ async def AddExperience(channel, uid, amount):
           foundrole = True
       try:
         embed = discord.Embed()
-        embed.title = f"<a:nom_party:720961569730592819> Level {al}!"
+        embed.title = f":nom_party: Level {al}!"
         embed.description = f"<@{uid}> reached level `{al}`, congratulations!\n`{remxp:,d}` experience left to next level." + (f"\nYou got a new role: {assignedrole.mention}" if assignedrole else "")
         embed.set_thumbnail(url="https://i.pinimg.com/originals/6e/02/79/6e02795268003bb04915790aa1302f4e.gif")
         embed.colour = 0xb58517
@@ -647,7 +647,7 @@ async def CreateTimer(timerdoc):
       return
     timcol.delete_one({"_id": timerdoc.get("_id")})
     member = bot.guilds[0].get_member(timerdoc.get("owner"))
-    await member.send("<a:doge_dance:728195752123433030> Your timer has been reached!" + (("\n`" + timerdoc.get("message") + "`") if timerdoc.get("message") != None else "") + f"\n(Timer was `" + GetTimeString(timerdoc.get("totaltimer")) + "`)")
+    await member.send(":doge_dance: Your timer has been reached!" + (("\n`" + timerdoc.get("message") + "`") if timerdoc.get("message") != None else "") + f"\n(Timer was `" + GetTimeString(timerdoc.get("totaltimer")) + "`)")
 
 async def UpdateBroadcastTexts(force=False):
     if datetime.datetime.now().minute % 5 == 0 or force:
@@ -689,7 +689,7 @@ async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
     channel = bot.get_channel(channel)
     global playingtrivia
     if playingtrivia:
-      await channel.send("<a:download1:745404052598423635> Tried to start a game of trivia, but there is already one right now.")
+      await channel.send(":download1: Tried to start a game of trivia, but there is already one right now.")
       return
     if questions > 50:
       await channel.send("Cannot start trivia with more than 50 questions.")
@@ -712,7 +712,7 @@ async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
         asyncio.get_event_loop().create_task(lmsg.edit(content="",
         embed=discord.Embed(
           title=f"Game of Trivia: Starting in {cstr}",
-          description=f"\n<a:CS_Wiggle:856616923915878411> Playing with **{questions}** questions.\n*How to play: There will be a few questions shown here, type the answer to the question when they occur. Your first message will count as your answer and be deleted to not show others what you typed. Later messages will not be deleted, to allow you to continue sending messages.*\n**Please read the following before playing:**\n• Do not cheat by searching for the answer or by looking at what other people are typing.\n• Let the other members guess too; don't give them the answer.\n• Do not send many messages to make the trivia message harder to see.",
+          description=f"\n:CS_Wiggle: Playing with **{questions}** questions.\n*How to play: There will be a few questions shown here, type the answer to the question when they occur. Your first message will count as your answer and be deleted to not show others what you typed. Later messages will not be deleted, to allow you to continue sending messages.*\n**Please read the following before playing:**\n• Do not cheat by searching for the answer or by looking at what other people are typing.\n• Let the other members guess too; don't give them the answer.\n• Do not send many messages to make the trivia message harder to see.",
           colour=0xd88e58
           )))
       await asyncio.sleep(1)
@@ -772,7 +772,7 @@ async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
           await AddExperience(channel, uid, [40, 70, 100][question[2]])
         else:
           await AddExperience(channel, uid, 5)
-      embed.description = "Answer: **`" + (question[1]) + "`**\n*" + str(len(correctanswers)) + " out of " + str(len(answers)) + " people answered correctly.*\n\n" + ("<a:nom_party:720961569730592819> **Get ready for the next question!**" if i != qc - 1 else ":thankyou: **Thank you for playing! Wait to see the results...**")
+      embed.description = "Answer: **`" + (question[1]) + "`**\n*" + str(len(correctanswers)) + " out of " + str(len(answers)) + " people answered correctly.*\n\n" + (":nom_party: **Get ready for the next question!**" if i != qc - 1 else ":thankyou: **Thank you for playing! Wait to see the results...**")
       embed.colour = discord.Colour.green()
       await qmsg.edit(embed=embed)
       await asyncio.sleep(15)
@@ -819,7 +819,7 @@ async def RemindDisboardBump():
       UpdateLoopUsed(idstr, delay)
       embed = discord.Embed()
       embed.set_author(name="BUMPING AVAILABLE!")
-      embed.title = "<a:CS_Wiggle:856616923915878411> Contribute to Study Fam!"
+      embed.title = ":CS_Wiggle: Contribute to Study Fam!"
       embed.description = "Help the server grow by typing or clicking </bump:947088344167366698>."
       embed.colour = 0x2f3136
       await bot.get_channel(channels.BotCommands).send(embed=embed)
@@ -1108,13 +1108,13 @@ async def on_command_error(ctx, error):
       await ctx.send("Expected a member.")
     elif isinstance(error, commands.CommandNotFound):
       await ctx.send(embed=discord.Embed(
-        description=f"<a:thisisfine:856617800395259904> Sorry! No such command: [`{sanitize(ctx.invoked_with)}`](https://.) could be found.\nRun `mom help` and see if you can find what you are looking for.\nYou can also ask staff to help you find it.",
+        description=f":thisisfine: Sorry! No such command: [`{sanitize(ctx.invoked_with)}`](https://.) could be found.\nRun `mom help` and see if you can find what you are looking for.\nYou can also ask staff to help you find it.",
         colour=0x2f3136
       ))
     elif isinstance(error, NotAdmin):
       await ctx.send(":shibashock: Only administrators, the owner or the developer can do this.")
     elif isinstance(error, NotCasino):
-      await ctx.send("<a:download1:745404052598423635> You must be in the casino channel to do this!\nYou may have to unlock it in the shop.")
+      await ctx.send(":download1: You must be in the casino channel to do this!\nYou may have to unlock it in the shop.")
     elif isinstance(error, LevelRestricted):
       await ctx.send(f":shibaplease: You need to be level **{error.rlevel}** to do this.")
     #Time string errors
@@ -1142,7 +1142,7 @@ async def on_command_error(ctx, error):
         sys.exit()
       lasterror = time.time()
       embed = discord.Embed()
-      embed.description = f"<a:thisisfine:856617800395259904> Sorry!\nAn error occured while trying to run your command: `{sanitize(ctx.invoked_with)}`.\nAlert the developer by clicking the check icon below.\n**Debug information:**\n```\n{error}```"
+      embed.description = f":thisisfine: Sorry!\nAn error occured while trying to run your command: `{sanitize(ctx.invoked_with)}`.\nAlert the developer by clicking the check icon below.\n**Debug information:**\n```\n{error}```"
       embed.colour = 0x2f3136
       embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/861542071905943562/890874808412291092/image.png")
       emsg = await ctx.send(embed=embed)
@@ -1374,7 +1374,7 @@ async def StopStudying(member_id, simulated=False, simulator=0):
     try:
       if not smmode is False:
         embed = discord.Embed()
-        embed.description = f"<a:greatwork:961366842868367370> Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n<a:greatwork:961366842868367370> [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens :book:" if not NoTokens(member.id) else "") + f"\n\n<a:greatwork:961366842868367370> [`+{earncoins:,d}`](https://. \"Earned coins\") coins :famcoin2:" + ("\n\n<a:greatwork:961366842868367370> Camera/screenshare bonus!" if used_cam else "") + (f"\n\n<a:greatwork:961366842868367370> :beaver_2: Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n<a:greatwork:961366842868367370> Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n<a:greatwork:961366842868367370> {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n:WokePepe: Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n<a:greatwork:961366842868367370> You got closer to your study goal" if hasgoal else "")
+        embed.description = f":greatwork: Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n:greatwork: [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens :book:" if not NoTokens(member.id) else "") + f"\n\n:greatwork: [`+{earncoins:,d}`](https://. \"Earned coins\") coins :famcoin2:" + ("\n\n:greatwork: Camera/screenshare bonus!" if used_cam else "") + (f"\n\n:greatwork: :beaver_2: Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n:greatwork: Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n:greatwork: {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n:WokePepe: Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n:greatwork: You got closer to your study goal" if hasgoal else "")
         embed.colour = 0x36393f#0x67356b
         randomquote = random.choice([
           "I hope you will appreciate your return.",
@@ -1499,7 +1499,7 @@ async def stats(ctx, user: discord.Member=None):
     embed.set_thumbnail(url=user.display_avatar.with_size(128).url)
     if not NoTokens(user.id):
       embed.add_field(name=":book: Study tokens", value=f"`{GetUserTokens(user.id):,d}`")
-    embed.add_field(name=((":famcoin2: Coins" if user.id != 824316055681761320 else "<a:cat_popcorn:853734055765606430> Popcorn bank") if user.id != 577934880634306560 else "<a:1150_pugdancel:856637771795267614> Doggy bank") if user.id != 799293092209491998 else "🐖 Piggy bank", value=f"**{GetUserCoins(user.id):,d}**")
+    embed.add_field(name=((":famcoin2: Coins" if user.id != 824316055681761320 else ":cat_popcorn: Popcorn bank") if user.id != 577934880634306560 else ":1150_pugdancel: Doggy bank") if user.id != 799293092209491998 else "🐖 Piggy bank", value=f"**{GetUserCoins(user.id):,d}**")
     studytime = GetUserAttr(user.id, "studytime")
     embed.add_field(name=":hourglass: Study time", value=GetTimeString(studytime) if studytime is not None else "No study session yet!")
     if not NoTokens(user.id):
@@ -1697,7 +1697,7 @@ async def pay(ctx, user: discord.Member=None, amount=None):
       return
     maxpayamount = int(GetUserCoins(ctx.author.id) * .75)
     if amount > maxpayamount:
-      cmsg = await ctx.send(f"You can't pay more than **75%** of your balance.\n<a:nom_party:720961569730592819> For you that's `{maxpayamount:,d} coins`.\nType `pay` if you want to pay {sanitize(user.name)} `{maxpayamount:,d} coins` instead.")
+      cmsg = await ctx.send(f"You can't pay more than **75%** of your balance.\n:nom_party: For you that's `{maxpayamount:,d} coins`.\nType `pay` if you want to pay {sanitize(user.name)} `{maxpayamount:,d} coins` instead.")
       def check(m):
         return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
       try:
@@ -1913,7 +1913,7 @@ async def hangman(ctx):
       if attemptsleft <= 0:
         TakeUserCoins(ctx.author.id, 400)
         await ctx.send(embed=discord.Embed(
-          title="<a:goodbye_bush:739540942750613574> Man hanged",
+          title=":goodbye_bush: Man hanged",
           description=f"You ran out of tries.\nThe word: {selectedword.upper()}\n`-400 coins`",
           colour=discord.Colour.red()
         ))
@@ -1976,7 +1976,7 @@ async def hangman(ctx):
         if char in usedchars or char in usedcharsgood:
           await ctx.send(embed=discord.Embed(
             title="Letter in use",
-            description="<a:goodbye_bush:739540942750613574> You have already used this letter.",
+            description=":goodbye_bush: You have already used this letter.",
             colour=discord.Colour.red()
           ))
           continue
@@ -2112,19 +2112,19 @@ async def roleshop(ctx):
 @level_restrict(3)
 async def buyrole(ctx, itemname=None):
     if itemname is None:
-      await ctx.send("<a:download1:745404052598423635> You have to actually include a role to buy it.")
+      await ctx.send(":download1: You have to actually include a role to buy it.")
       return
     itemname = itemname.lower()
     if not itemname in shopitems:
-      await ctx.send("<a:download1:745404052598423635> That role does not exist in the role shop, please view the shop to see what we have.")
+      await ctx.send(":download1: That role does not exist in the role shop, please view the shop to see what we have.")
       return
     item = shopitems[itemname]
     itemrole = discord.utils.get(bot.guilds[0].roles, id=item[2])
     if itemrole in ctx.author.roles:
-      await ctx.send("<a:download1:745404052598423635> You already have this! You cannot buy it.")
+      await ctx.send(":download1: You already have this! You cannot buy it.")
       return
     if GetUserCoins(ctx.author.id) < item[0]:
-      await ctx.send("<a:download1:745404052598423635> You don't have enough coins to buy this!")
+      await ctx.send(":download1: You don't have enough coins to buy this!")
       return
     await AddExperience(ctx, ctx.author.id, 300)
     TakeUserCoins(ctx.author.id, item[0])
@@ -2196,7 +2196,7 @@ async def buypack(ctx, packname=None):
           #got this card
           TakeUserCoins(ctx.author.id, pack["cost"])
           await AddExperience(ctx, ctx.author.id, 1000)
-          omsg = await ctx.send(f'Bought pack for `{pack["cost"]:,d}` coins.\n<a:doge_dance:728195752123433030> **Opening the pack `{packname}` ...** <a:doge_dance:728195752123433030>')
+          omsg = await ctx.send(f'Bought pack for `{pack["cost"]:,d}` coins.\n:doge_dance: **Opening the pack `{packname}` ...** :doge_dance:')
           file = LoadTradecardImage(card)
           await omsg.delete()
           chosencard = True
@@ -2327,20 +2327,20 @@ def StringToTime(timestr):
 @bot.command(aliases=["addgoal", "makegoal", "creategoal", "newgoal"])
 async def setgoal(ctx, *, ftime=None):
     if (GetUserAttr(ctx.author.id, "dailygoal") or [0, 0, 0])[2] == math.floor(time.time() / 24 / 60 / 60):
-      await ctx.send("<a:download1:745404052598423635> You already have a goal for today. Type `mom mygoal` for more information.")
+      await ctx.send(":download1: You already have a goal for today. Type `mom mygoal` for more information.")
       return
     if ftime is None:
-      await ctx.send("<a:download1:745404052598423635> You must provide a time amount to set todays goal to.\nExample: `2h 30m`")
+      await ctx.send(":download1: You must provide a time amount to set todays goal to.\nExample: `2h 30m`")
       return
     totaltime = StringToTime(ftime)
     if totaltime < 5 * 60:
-      await ctx.send("<a:download1:745404052598423635> Your goal must be at least 5 minutes.")
+      await ctx.send(":download1: Your goal must be at least 5 minutes.")
       return
     if totaltime > 20 * 60 * 60:
-      await ctx.send("<a:download1:745404052598423635> What are you doing??\nDon't put your goal that high, max 20 hours.")
+      await ctx.send(":download1: What are you doing??\nDon't put your goal that high, max 20 hours.")
       return
     if (time.time() + totaltime + (30 * 60)) > int((time.time() / (24 * 60 * 60)) + 1) * 24 * 60 * 60:
-      await ctx.send("<a:download1:745404052598423635> Oops! I'm sorry, but if you would start studying now until you reach the goal, you would finish later than 23:30 in UTC+0 which is 30 minutes before goal reset. Therefore you cannot set that goal at the moment.")
+      await ctx.send(":download1: Oops! I'm sorry, but if you would start studying now until you reach the goal, you would finish later than 23:30 in UTC+0 which is 30 minutes before goal reset. Therefore you cannot set that goal at the moment.")
       return
     if totaltime >= 4 * 60 * 60:
       await NewPrestige(ctx.author.id, "planner")
@@ -2464,12 +2464,12 @@ async def daily(ctx):
     dailyclaim = GetUserAttr(ctx.author.id, "dailyclaim") or 0
     todayint = int(time.time() / 60 / 60 / 24)
     if dailyclaim == todayint:
-      await ctx.send(f"<a:download1:745404052598423635> You have already claimed your daily reward!\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
+      await ctx.send(f":download1: You have already claimed your daily reward!\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
       return
     SetUserAttr(ctx.author.id, "dailyclaim", todayint)
     earncoins = 150
     AddUserCoins(ctx.author.id, earncoins)
-    await ctx.send(f"<a:CS_Wiggle:856616923915878411> **Claimed daily reward!**\n`+{earncoins} coins`\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
+    await ctx.send(f":CS_Wiggle: **Claimed daily reward!**\n`+{earncoins} coins`\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
 
 @bot.command()
 @admin_only()
@@ -2629,7 +2629,7 @@ async def NewPrestige(uid, prestige):
       embed = discord.Embed()
       embed.set_author(name="New prestige!")
       embed.title = prestige[0]
-      embed.description = f"<a:nom_party:720961569730592819> *{prestige[1]}*\n`+{prestige[2]} experience`"
+      embed.description = f":nom_party: *{prestige[1]}*\n`+{prestige[2]} experience`"
       embed.colour = discord.Colour.purple()
       try:
         await user.send(embed=embed)
@@ -2678,7 +2678,7 @@ async def makequestion(ctx):
       m = m.content.lower()
       if m == "confirm":
         eqmsg = await ctx.send(ctx.author.mention, embed=discord.Embed(
-          description="<a:doge_dance:728195752123433030> Type the __question__ for your trivia.\n*16-80 characters*",
+          description=":doge_dance: Type the __question__ for your trivia.\n*16-80 characters*",
           colour=discord.Colour.purple()
         ))
         try:
@@ -2695,7 +2695,7 @@ async def makequestion(ctx):
             return
           question = m
           eamsg = await ctx.send(ctx.author.mention, embed=discord.Embed(
-            description="<a:doge_dance:728195752123433030> Type the __answer__ for your trivia.\n*1-18 characters*",
+            description=":doge_dance: Type the __answer__ for your trivia.\n*1-18 characters*",
             colour=discord.Colour.purple()
           ))
           try:
@@ -2712,7 +2712,7 @@ async def makequestion(ctx):
               return
             answer = m
             edmsg = await ctx.send(ctx.author.mention, embed=discord.Embed(
-              description="<a:doge_dance:728195752123433030> Set the __difficulty__ for your trivia.\n\n**1.** Easy\n**2.** Moderate\n**3.** Hard",
+              description=":doge_dance: Set the __difficulty__ for your trivia.\n\n**1.** Easy\n**2.** Moderate\n**3.** Hard",
               colour=discord.Colour.purple()
             ))
             try:
@@ -2734,7 +2734,7 @@ async def makequestion(ctx):
               difficulty = m
               embed = discord.Embed()
               embed.colour = discord.Colour.purple()
-              embed.description = "<a:doge_dance:728195752123433030> Set the __genre__ for your trivia.\n"
+              embed.description = ":doge_dance: Set the __genre__ for your trivia.\n"
               i = 1
               for genre in trivia.genres:
                 embed.description += f"\n**{i}.** `{genre}`"
@@ -2801,7 +2801,7 @@ async def UpdateBountyMessage(refid):
     deposit = doc.get("input")
     description = doc.get("description")
     embed = discord.Embed()
-    embed.title = "<a:doge_dance:728195752123433030> New Bounty!"
+    embed.title = ":doge_dance: New Bounty!"
     embed.description = f"Fellow officers, here is a bounty.\nClaim it with `mom claimbounty {refid}`!\n\nCreated by: {provider.mention}\nChallenge: `{description}`\nPrize: :famcoin2: `{deposit:,d}`\nClaim status: [{statusicon} **{statusmode}**](https://. \"Whether this bounty is claimable or not\")" + (" (<@" + str(doc.get("claimed_by")) + ">)" if doc.get("claimed") else "")
     embed.set_thumbnail(url="https://i.imgur.com/SchZkD8.png")
     embed.colour = 0x7a3333
@@ -2926,7 +2926,7 @@ async def finishbounty(ctx):
       return
     coindeposit = doc.get("input")
     provider = bot.guilds[0].get_member(doc.get("provider"))
-    fsmsg = await ctx.send(f"{ctx.author.mention}\n<a:download1:745404052598423635> Did `{sanitize(provider.name)}` complete their challenge?\nType `yes` or `no`.")
+    fsmsg = await ctx.send(f"{ctx.author.mention}\n:download1: Did `{sanitize(provider.name)}` complete their challenge?\nType `yes` or `no`.")
     def check(m):
       return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
     try:
@@ -2973,7 +2973,7 @@ async def reminder(ctx, *, ftime=None):
       await ctx.send("Max 5 timers at once!")
       return
     await ctx.message.delete()
-    tamsg = await ctx.send(ctx.author.mention + "\n<a:doge_dance:728195752123433030> How long should the timer be set to?\nE.g. `1h 30m`")
+    tamsg = await ctx.send(ctx.author.mention + "\n:doge_dance: How long should the timer be set to?\nE.g. `1h 30m`")
     def check(m):
       return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
     try:
@@ -2992,7 +2992,7 @@ async def reminder(ctx, *, ftime=None):
       if totaltime < 30:
         await ctx.send("At least 30 seconds for timer. The timer has not been set.")
         return
-      tmmsg = await ctx.send(ctx.author.mention + "\n<a:doge_dance:728195752123433030> What should the message be?\nType `none` to ignore message.")
+      tmmsg = await ctx.send(ctx.author.mention + "\n:doge_dance: What should the message be?\nType `none` to ignore message.")
       try:
         m = await bot.wait_for("message", timeout=60, check=check)
       except asyncio.TimeoutError:
@@ -3011,7 +3011,7 @@ async def reminder(ctx, *, ftime=None):
           "totaltimer": totaltime,
           "message": timermessage
         })
-        await ctx.send(f"{ctx.author.mention}\n<a:doge_dance:728195752123433030> **Reminder created!**\nI will remind you in `{GetTimeString(totaltime)}`" + (f" with `{timermessage}`" if timermessage != None else "") + ".")
+        await ctx.send(f"{ctx.author.mention}\n:doge_dance: **Reminder created!**\nI will remind you in `{GetTimeString(totaltime)}`" + (f" with `{timermessage}`" if timermessage != None else "") + ".")
         asyncio.get_event_loop().create_task(LoadTimers())
 
 @bot.command(aliases=["mytimers", "listreminders", "listtimers", "reminderlist", "timerlist", "reminders", "timers"])
@@ -3969,7 +3969,7 @@ async def MatchStudyBuddies():
         buddy2 = await bot.fetch_user(perfect_match.get("_id"))
         studybuddiescol.delete_many({"$or": [{"_id": buddy1.id}, {"_id": buddy2.id}]})
         embed = discord.Embed()
-        embed.title = "<a:CS_Wiggle:856616923915878411> Study Buddy Match <a:CS_Wiggle:856616923915878411>"
+        embed.title = ":CS_Wiggle: Study Buddy Match :CS_Wiggle:"
         embed.description = f"Hello, {buddy1.mention} and {buddy2.mention}!\nYou two have been matched together. Please get in contact with each other!\nBoth of you have been removed from the program queue."
         embed.colour = 0x895139
         await bot.get_channel(channels.BuddyApplications).send(buddy1.mention + buddy2.mention, embed=embed)

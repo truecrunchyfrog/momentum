@@ -16,12 +16,12 @@ messages = [
 ]
 
 emojis = [
-  #"<a:6643_Dank_Rainbow_Frog:731597742656323635>",
-  #"<a:nom_party:720961569730592819>",
+  #":6643_Dank_Rainbow_Frog:",
+  #":nom_party:",
   #":wow:",
   #":shibahey:",
   #":blobcute:",
-  #"<a:giphy1:731590057395355788>",
+  #":giphy1:",
   #":blushy_froggie:",
   #":pandalove:",
   #":Kermit_Hi:",

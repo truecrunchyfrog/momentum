@@ -50,7 +50,7 @@ manimations = [
   ":shibasad:",
   ":facepalm:",
   ":blobtired:",
-  "<a:goodbye_bush:739540942750613574>",
+  ":goodbye_bush:",
   ":PepeKMS:",
   ":excusemewtf:",
   ":thonkms:",
