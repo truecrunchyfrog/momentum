@@ -1,3 +1,4 @@
+from emojis import emojis
 messages = [
   "Welcome to Study Fam, {0}!",
   "{0} is with us.",
@@ -18,7 +19,7 @@ messages = [
 emojis = [
   #":6643_Dank_Rainbow_Frog:",
   #":nom_party:",
-  #":wow:",
+  #"{emojis.wow}",
   #":shibahey:",
   #":blobcute:",
   #":giphy1:",

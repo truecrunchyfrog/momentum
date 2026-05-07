@@ -1,3 +1,4 @@
+from emojis import emojis
 '''
 WARNING!
 Please read this before inspecting any file further:
@@ -606,7 +607,7 @@ async def CheckMonthlyLeaderboardReset(force=False):
       embed = discord.Embed()
       embed.title = ":book: Monthly Reset"
       #embed.description = f"A new month is here and it's time to reset the leaderboard!\n**Congratulations winners!**\nThese people studied the best last month:\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n\nThe winner has received 1 month of gold membership and coins. The 2nd and 3rd leaders earned some coins.\n\nMaybe this month is your chance to study well? Good luck people!\n[Click here]({slmsg.jump_url}) to see the archived first leaderboard page."
-      embed.description = f"✨ A new month is here, so it's time to congratulate the following three who have topped our leaderboard last month and to continue the succession of the throne! :kingcat: Thank you for inspiring us this month with your hard work!\n\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n🎉 All hail the new monthly leader {n1mem.mention}! The coin rewards have already been deposited into the accounts of the top 3! :I_got_money:\n\nGood job as well to ALL frogs this month for the work done :catpats:\nAll the best for the next month, we are looking forward to your company!! :comfyblob:\n\nAlso, [click here]({slmsg.jump_url}) to see the full first leaderboard page."
+      embed.description = f"✨ A new month is here, so it's time to congratulate the following three who have topped our leaderboard last month and to continue the succession of the throne! {emojis.kingcat} Thank you for inspiring us this month with your hard work!\n\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n🎉 All hail the new monthly leader {n1mem.mention}! The coin rewards have already been deposited into the accounts of the top 3! {emojis.I_got_money}\n\nGood job as well to ALL frogs this month for the work done :catpats:\nAll the best for the next month, we are looking forward to your company!! :comfyblob:\n\nAlso, [click here]({slmsg.jump_url}) to see the full first leaderboard page."
       embed.colour = 0xaa763f
 
       newsfeedrole = discord.utils.get(bot.guilds[0].roles, id=844605574032916512)
@@ -647,7 +648,7 @@ async def CreateTimer(timerdoc):
       return
     timcol.delete_one({"_id": timerdoc.get("_id")})
     member = bot.guilds[0].get_member(timerdoc.get("owner"))
-    await member.send(":doge_dance: Your timer has been reached!" + (("\n`" + timerdoc.get("message") + "`") if timerdoc.get("message") != None else "") + f"\n(Timer was `" + GetTimeString(timerdoc.get("totaltimer")) + "`)")
+    await member.send(f"{emojis.doge_dance} Your timer has been reached!" + (("\n`" + timerdoc.get("message") + "`") if timerdoc.get("message") != None else "") + f"\n(Timer was `" + GetTimeString(timerdoc.get("totaltimer")) + "`)")
 
 async def UpdateBroadcastTexts(force=False):
     if datetime.datetime.now().minute % 5 == 0 or force:
@@ -993,7 +994,7 @@ async def on_member_join(member):
         SetUserAttr(inviter.id, "invite_list", memberinvlist)
         AddUserCoins(inviter.id, 300)
         try:
-          await inviter.send("Thank you for inviting " + sanitize(member.name) + " to Study Fam! You have been given :famcoin2: `300`.")
+          await inviter.send("Thank you for inviting " + sanitize(member.name) + f" to Study Fam! You have been given {emojis.famcoin2} `300`.")
         except:
           pass
         # don't break the loop here, to allow previous invites to be cleared as well, if they were removed while the bot was offline
@@ -1374,7 +1375,7 @@ async def StopStudying(member_id, simulated=False, simulator=0):
     try:
       if not smmode is False:
         embed = discord.Embed()
-        embed.description = f":greatwork: Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n:greatwork: [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens :book:" if not NoTokens(member.id) else "") + f"\n\n:greatwork: [`+{earncoins:,d}`](https://. \"Earned coins\") coins :famcoin2:" + ("\n\n:greatwork: Camera/screenshare bonus!" if used_cam else "") + (f"\n\n:greatwork: :beaver_2: Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n:greatwork: Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n:greatwork: {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n:WokePepe: Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n:greatwork: You got closer to your study goal" if hasgoal else "")
+        embed.description = f":greatwork: Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n:greatwork: [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens :book:" if not NoTokens(member.id) else "") + f"\n\n:greatwork: [`+{earncoins:,d}`](https://. \"Earned coins\") coins {emojis.famcoin2}" + ("\n\n:greatwork: Camera/screenshare bonus!" if used_cam else "") + (f"\n\n:greatwork: :beaver_2: Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n:greatwork: Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n:greatwork: {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n:WokePepe: Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n:greatwork: You got closer to your study goal" if hasgoal else "")
         embed.colour = 0x36393f#0x67356b
         randomquote = random.choice([
           "I hope you will appreciate your return.",
@@ -1499,7 +1500,7 @@ async def stats(ctx, user: discord.Member=None):
     embed.set_thumbnail(url=user.display_avatar.with_size(128).url)
     if not NoTokens(user.id):
       embed.add_field(name=":book: Study tokens", value=f"`{GetUserTokens(user.id):,d}`")
-    embed.add_field(name=((":famcoin2: Coins" if user.id != 824316055681761320 else ":cat_popcorn: Popcorn bank") if user.id != 577934880634306560 else ":1150_pugdancel: Doggy bank") if user.id != 799293092209491998 else "🐖 Piggy bank", value=f"**{GetUserCoins(user.id):,d}**")
+    embed.add_field(name=((f"{emojis.famcoin2} Coins" if user.id != 824316055681761320 else ":cat_popcorn: Popcorn bank") if user.id != 577934880634306560 else ":1150_pugdancel: Doggy bank") if user.id != 799293092209491998 else "🐖 Piggy bank", value=f"**{GetUserCoins(user.id):,d}**")
     studytime = GetUserAttr(user.id, "studytime")
     embed.add_field(name=":hourglass: Study time", value=GetTimeString(studytime) if studytime is not None else "No study session yet!")
     if not NoTokens(user.id):
@@ -1857,7 +1858,7 @@ async def StarMessage(message, nominator):
     try:
         await nominator.send(embed=discord.Embed(
             title=":0_momentum_star: Star this message?",
-            description=f"Do you want to pay :famcoin2: `{starcost}` coins to star [{sanitize(message.author.name)}'s message]({message.jump_url})?\nTheir message will display in {bot.get_channel(channels.BeaverBoard).mention}.\nType `yes` to confirm and place the message there.",
+            description=f"Do you want to pay {emojis.famcoin2} `{starcost}` coins to star [{sanitize(message.author.name)}'s message]({message.jump_url})?\nTheir message will display in {bot.get_channel(channels.BeaverBoard).mention}.\nType `yes` to confirm and place the message there.",
             colour=0x721806
             ))
     except:
@@ -2006,7 +2007,7 @@ async def hangman(ctx):
           AddUserCoins(ctx.author.id, 60)
           await AddExperience(ctx, ctx.author.id, 200)
           await ctx.send(embed=discord.Embed(
-            title=":wow: " + selectedword.upper(),
+            title=f"{emojis.wow} " + selectedword.upper(),
             description="Good game!\n`+60 coins`",
             colour=discord.Colour.green()
           ))
@@ -2101,7 +2102,7 @@ async def roleshop(ctx):
     embed.description = "In the role shop you can use your well earned coins to buy roles for **channel access and other exclusive abilities**.\nType `mom buyrole [role]` to buy a role.\n**NOTE:** This is the __role__ shop. If you want to buy cards, use `mom packshop` instead.\n"
     for itemname in shopitems:
       item = shopitems[itemname]
-      embed.description += f"\n☞ [`{itemname}`](https://. \"Role name\") :famcoin2: `{item[0]:,d}`" + (f" • **Lasts {GetTimeString(item[3])}**" if len(item) >= 4 else "") + (f" (**[OWNED](https://. \"You own this role, and you cannot buy it\")**)" if discord.utils.get(ctx.author.roles, id=item[2]) else "") + f"\n{item[1]}\n"
+      embed.description += f"\n☞ [`{itemname}`](https://. \"Role name\") {emojis.famcoin2} `{item[0]:,d}`" + (f" • **Lasts {GetTimeString(item[3])}**" if len(item) >= 4 else "") + (f" (**[OWNED](https://. \"You own this role, and you cannot buy it\")**)" if discord.utils.get(ctx.author.roles, id=item[2]) else "") + f"\n{item[1]}\n"
     embed.colour = 0x843946
     embed.set_thumbnail(url="https://icons.iconarchive.com/icons/kyo-tux/basket/128/basket-full-icon.png")
     embed.set_footer(text="Use \"mom roles\" to see what temporary roles you own and when they expire.")
@@ -2138,7 +2139,7 @@ async def buyrole(ctx, itemname=None):
     #brole = discord.utils.get(bot.guilds[0].roles, id=item[2])
     # this is a duplicate of itemrole??
     await ctx.send(ctx.author.mention, embed=discord.Embed(
-      title=f":famcoin2: Purchased {itemname}",
+      title=f"{emojis.famcoin2} Purchased {itemname}",
       description=f"You purchased the role {itemrole.mention} for `{item[0]:,d}` coins.\n> {item[1]}" + (f"\nYou will lose this role in `{GetTimeString(item[3])}`" if len(item) >= 4 else ""),
       colour=0x378c28
     ))
@@ -2161,7 +2162,7 @@ async def packshop(ctx):
       for cardid in owncards:
         if cardid in pack["cards"] and not cardid in cardsownedc:
           cardsownedc.append(cardid)
-      embed.description += f'\n☞ [`{packname}`](https://. "Pack name") :famcoin2: `{pack["cost"]:,d}` ({len(pack["cards"])} possible cards)' + (f' - **{round((len(cardsownedc) / len(pack["cards"])) * 100)} % collected**' if len(cardsownedc) > 0 else "") + f'\n{pack["description"]}\n'
+      embed.description += f'\n☞ [`{packname}`](https://. "Pack name") {emojis.famcoin2} `{pack["cost"]:,d}` ({len(pack["cards"])} possible cards)' + (f' - **{round((len(cardsownedc) / len(pack["cards"])) * 100)} % collected**' if len(cardsownedc) > 0 else "") + f'\n{pack["description"]}\n'
     embed.colour = 0x136c8c
     embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/783066135662428180/851746324961558538/unknown.png")
     await ctx.send(embed=embed)
@@ -2196,7 +2197,7 @@ async def buypack(ctx, packname=None):
           #got this card
           TakeUserCoins(ctx.author.id, pack["cost"])
           await AddExperience(ctx, ctx.author.id, 1000)
-          omsg = await ctx.send(f'Bought pack for `{pack["cost"]:,d}` coins.\n:doge_dance: **Opening the pack `{packname}` ...** :doge_dance:')
+          omsg = await ctx.send(f'Bought pack for `{pack["cost"]:,d}` coins.\n{emojis.doge_dance} **Opening the pack `{packname}` ...** {emojis.doge_dance}')
           file = LoadTradecardImage(card)
           await omsg.delete()
           chosencard = True
@@ -2347,7 +2348,7 @@ async def setgoal(ctx, *, ftime=None):
     SetUserAttr(ctx.author.id, "dailygoal", [totaltime, totaltime, math.floor(time.time() / 24 / 60 / 60)])
     await AddExperience(ctx, ctx.author.id, 200)
     await ctx.send(ctx.author.mention, embed=discord.Embed(
-      description=f":wow: Your goal of `{GetTimeString(totaltime)}` has been made, start studying and try[*](https://discord.com/channels/712808127539707927/713177565849845849/822971544098963456 \"Click for motivation\") reach it!\nSee your progress with the command `mom mygoal`.",
+      description=f"{emojis.wow} Your goal of `{GetTimeString(totaltime)}` has been made, start studying and try[*](https://discord.com/channels/712808127539707927/713177565849845849/822971544098963456 \"Click for motivation\") reach it!\nSee your progress with the command `mom mygoal`.",
       colour=discord.Colour.green()
     ))
 
@@ -2678,7 +2679,7 @@ async def makequestion(ctx):
       m = m.content.lower()
       if m == "confirm":
         eqmsg = await ctx.send(ctx.author.mention, embed=discord.Embed(
-          description=":doge_dance: Type the __question__ for your trivia.\n*16-80 characters*",
+          description=f"{emojis.doge_dance} Type the __question__ for your trivia.\n*16-80 characters*",
           colour=discord.Colour.purple()
         ))
         try:
@@ -2695,7 +2696,7 @@ async def makequestion(ctx):
             return
           question = m
           eamsg = await ctx.send(ctx.author.mention, embed=discord.Embed(
-            description=":doge_dance: Type the __answer__ for your trivia.\n*1-18 characters*",
+            description=f"{emojis.doge_dance} Type the __answer__ for your trivia.\n*1-18 characters*",
             colour=discord.Colour.purple()
           ))
           try:
@@ -2712,7 +2713,7 @@ async def makequestion(ctx):
               return
             answer = m
             edmsg = await ctx.send(ctx.author.mention, embed=discord.Embed(
-              description=":doge_dance: Set the __difficulty__ for your trivia.\n\n**1.** Easy\n**2.** Moderate\n**3.** Hard",
+              description=f"{emojis.doge_dance} Set the __difficulty__ for your trivia.\n\n**1.** Easy\n**2.** Moderate\n**3.** Hard",
               colour=discord.Colour.purple()
             ))
             try:
@@ -2734,7 +2735,7 @@ async def makequestion(ctx):
               difficulty = m
               embed = discord.Embed()
               embed.colour = discord.Colour.purple()
-              embed.description = ":doge_dance: Set the __genre__ for your trivia.\n"
+              embed.description = f"{emojis.doge_dance} Set the __genre__ for your trivia.\n"
               i = 1
               for genre in trivia.genres:
                 embed.description += f"\n**{i}.** `{genre}`"
@@ -2801,8 +2802,8 @@ async def UpdateBountyMessage(refid):
     deposit = doc.get("input")
     description = doc.get("description")
     embed = discord.Embed()
-    embed.title = ":doge_dance: New Bounty!"
-    embed.description = f"Fellow officers, here is a bounty.\nClaim it with `mom claimbounty {refid}`!\n\nCreated by: {provider.mention}\nChallenge: `{description}`\nPrize: :famcoin2: `{deposit:,d}`\nClaim status: [{statusicon} **{statusmode}**](https://. \"Whether this bounty is claimable or not\")" + (" (<@" + str(doc.get("claimed_by")) + ">)" if doc.get("claimed") else "")
+    embed.title = f"{emojis.doge_dance} New Bounty!"
+    embed.description = f"Fellow officers, here is a bounty.\nClaim it with `mom claimbounty {refid}`!\n\nCreated by: {provider.mention}\nChallenge: `{description}`\nPrize: {emojis.famcoin2} `{deposit:,d}`\nClaim status: [{statusicon} **{statusmode}**](https://. \"Whether this bounty is claimable or not\")" + (" (<@" + str(doc.get("claimed_by")) + ">)" if doc.get("claimed") else "")
     embed.set_thumbnail(url="https://i.imgur.com/SchZkD8.png")
     embed.colour = 0x7a3333
     await msg.edit(content="", embed=embed)
@@ -2973,7 +2974,7 @@ async def reminder(ctx, *, ftime=None):
       await ctx.send("Max 5 timers at once!")
       return
     await ctx.message.delete()
-    tamsg = await ctx.send(ctx.author.mention + "\n:doge_dance: How long should the timer be set to?\nE.g. `1h 30m`")
+    tamsg = await ctx.send(ctx.author.mention + f"\n{emojis.doge_dance} How long should the timer be set to?\nE.g. `1h 30m`")
     def check(m):
       return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
     try:
@@ -2992,7 +2993,7 @@ async def reminder(ctx, *, ftime=None):
       if totaltime < 30:
         await ctx.send("At least 30 seconds for timer. The timer has not been set.")
         return
-      tmmsg = await ctx.send(ctx.author.mention + "\n:doge_dance: What should the message be?\nType `none` to ignore message.")
+      tmmsg = await ctx.send(ctx.author.mention + f"\n{emojis.doge_dance} What should the message be?\nType `none` to ignore message.")
       try:
         m = await bot.wait_for("message", timeout=60, check=check)
       except asyncio.TimeoutError:
@@ -3011,7 +3012,7 @@ async def reminder(ctx, *, ftime=None):
           "totaltimer": totaltime,
           "message": timermessage
         })
-        await ctx.send(f"{ctx.author.mention}\n:doge_dance: **Reminder created!**\nI will remind you in `{GetTimeString(totaltime)}`" + (f" with `{timermessage}`" if timermessage != None else "") + ".")
+        await ctx.send(f"{ctx.author.mention}\n{emojis.doge_dance} **Reminder created!**\nI will remind you in `{GetTimeString(totaltime)}`" + (f" with `{timermessage}`" if timermessage != None else "") + ".")
         asyncio.get_event_loop().create_task(LoadTimers())
 
 @bot.command(aliases=["mytimers", "listreminders", "listtimers", "reminderlist", "timerlist", "reminders", "timers"])
