@@ -2465,7 +2465,7 @@ async def daily(ctx):
     dailyclaim = GetUserAttr(ctx.author.id, "dailyclaim") or 0
     todayint = int(time.time() / 60 / 60 / 24)
     if dailyclaim == todayint:
-      await ctx.send(ff"{emojis.download1} You have already claimed your daily reward!\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
+      await ctx.send(f"{emojis.download1} You have already claimed your daily reward!\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
       return
     SetUserAttr(ctx.author.id, "dailyclaim", todayint)
     earncoins = 150
