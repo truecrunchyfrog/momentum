@@ -607,7 +607,7 @@ async def CheckMonthlyLeaderboardReset(force=False):
       embed = discord.Embed()
       embed.title = ":book: Monthly Reset"
       #embed.description = f"A new month is here and it's time to reset the leaderboard!\n**Congratulations winners!**\nThese people studied the best last month:\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n\nThe winner has received 1 month of gold membership and coins. The 2nd and 3rd leaders earned some coins.\n\nMaybe this month is your chance to study well? Good luck people!\n[Click here]({slmsg.jump_url}) to see the archived first leaderboard page."
-      embed.description = f"✨ A new month is here, so it's time to congratulate the following three who have topped our leaderboard last month and to continue the succession of the throne! {emojis.kingcat} Thank you for inspiring us this month with your hard work!\n\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n🎉 All hail the new monthly leader {n1mem.mention}! The coin rewards have already been deposited into the accounts of the top 3! {emojis.I_got_money}\n\nGood job as well to ALL frogs this month for the work done :catpats:\nAll the best for the next month, we are looking forward to your company!! :comfyblob:\n\nAlso, [click here]({slmsg.jump_url}) to see the full first leaderboard page."
+      embed.description = f"✨ A new month is here, so it's time to congratulate the following three who have topped our leaderboard last month and to continue the succession of the throne! {emojis.kingcat} Thank you for inspiring us this month with your hard work!\n\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n🎉 All hail the new monthly leader {n1mem.mention}! The coin rewards have already been deposited into the accounts of the top 3! {emojis.I_got_money}\n\nGood job as well to ALL frogs this month for the work done :catpats:\nAll the best for the next month, we are looking forward to your company!! {emojis.comfyblob}\n\nAlso, [click here]({slmsg.jump_url}) to see the full first leaderboard page."
       embed.colour = 0xaa763f
 
       newsfeedrole = discord.utils.get(bot.guilds[0].roles, id=844605574032916512)
@@ -713,7 +713,7 @@ async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
         asyncio.get_event_loop().create_task(lmsg.edit(content="",
         embed=discord.Embed(
           title=f"Game of Trivia: Starting in {cstr}",
-          description=f"\n:CS_Wiggle: Playing with **{questions}** questions.\n*How to play: There will be a few questions shown here, type the answer to the question when they occur. Your first message will count as your answer and be deleted to not show others what you typed. Later messages will not be deleted, to allow you to continue sending messages.*\n**Please read the following before playing:**\n• Do not cheat by searching for the answer or by looking at what other people are typing.\n• Let the other members guess too; don't give them the answer.\n• Do not send many messages to make the trivia message harder to see.",
+          description=f"\n{emojis.CS_wiggle} Playing with **{questions}** questions.\n*How to play: There will be a few questions shown here, type the answer to the question when they occur. Your first message will count as your answer and be deleted to not show others what you typed. Later messages will not be deleted, to allow you to continue sending messages.*\n**Please read the following before playing:**\n• Do not cheat by searching for the answer or by looking at what other people are typing.\n• Let the other members guess too; don't give them the answer.\n• Do not send many messages to make the trivia message harder to see.",
           colour=0xd88e58
           )))
       await asyncio.sleep(1)
@@ -820,7 +820,7 @@ async def RemindDisboardBump():
       UpdateLoopUsed(idstr, delay)
       embed = discord.Embed()
       embed.set_author(name="BUMPING AVAILABLE!")
-      embed.title = ":CS_Wiggle: Contribute to Study Fam!"
+      embed.title = f"{emojis.CS_wiggle} Contribute to Study Fam!"
       embed.description = "Help the server grow by typing or clicking </bump:947088344167366698>."
       embed.colour = 0x2f3136
       await bot.get_channel(channels.BotCommands).send(embed=embed)
@@ -1375,7 +1375,7 @@ async def StopStudying(member_id, simulated=False, simulator=0):
     try:
       if not smmode is False:
         embed = discord.Embed()
-        embed.description = f":greatwork: Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n:greatwork: [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens :book:" if not NoTokens(member.id) else "") + f"\n\n:greatwork: [`+{earncoins:,d}`](https://. \"Earned coins\") coins {emojis.famcoin2}" + ("\n\n:greatwork: Camera/screenshare bonus!" if used_cam else "") + (f"\n\n:greatwork: :beaver_2: Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n:greatwork: Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n:greatwork: {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n:WokePepe: Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n:greatwork: You got closer to your study goal" if hasgoal else "")
+        embed.description = f"{emojis.greatwork} Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n{emojis.greatwork} [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens :book:" if not NoTokens(member.id) else "") + f"\n\n{emojis.greatwork} [`+{earncoins:,d}`](https://. \"Earned coins\") coins {emojis.famcoin2}" + ("\n\n{emojis.greatwork} Camera/screenshare bonus!" if used_cam else "") + (f"\n\n{emojis.greatwork} :beaver_2: Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n{emojis.greatwork} Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n{emojis.greatwork} {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n:WokePepe: Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n{emojis.greatwork} You got closer to your study goal" if hasgoal else "")
         embed.colour = 0x36393f#0x67356b
         randomquote = random.choice([
           "I hope you will appreciate your return.",
@@ -1987,7 +1987,7 @@ async def hangman(ctx):
           usedcharsgood.append(char)
           await AddExperience(ctx, ctx.author.id, 40)
           #res = await ctx.send(embed=discord.Embed(
-          #  title=":shibacheer: Good letter",
+          #  title="{emojis.shibacheer} Good letter",
           #  colour=discord.Colour.green()
           #))
         else:
@@ -2207,7 +2207,7 @@ async def buypack(ctx, packname=None):
           }, upsert=True)
           dupecount = GetUserAttr(ctx.author.id, "card_inventory").count(card)
           embed = discord.Embed()
-          embed.description = f':shibacheer: The pack contained:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://. "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
+          embed.description = f'{emojis.shibacheer} The pack contained:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://. "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
           embed.set_image(url="attachment://tradecard.png")
           embed.colour = tradecards.rarity_colours[cardobj["rarity"]]
           await ctx.send(ctx.author.mention, file=file, embed=embed)
@@ -2470,7 +2470,7 @@ async def daily(ctx):
     SetUserAttr(ctx.author.id, "dailyclaim", todayint)
     earncoins = 150
     AddUserCoins(ctx.author.id, earncoins)
-    await ctx.send(f":CS_Wiggle: **Claimed daily reward!**\n`+{earncoins} coins`\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
+    await ctx.send(f"{emojis.CS_wiggle} **Claimed daily reward!**\n`+{earncoins} coins`\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
 
 @bot.command()
 @admin_only()
@@ -2782,7 +2782,7 @@ async def makequestion(ctx):
                     })
                     LoadTriviaQuestions()
                     await AddExperience(ctx, ctx.author.id, 350)
-                    await ctx.send(":shibacheer: **Trivia submitted!**\nYour trivia has been added and is playable.\nIf you wish to remove the trivia, please contact staff.")
+                    await ctx.send("{emojis.shibacheer} **Trivia submitted!**\nYour trivia has been added and is playable.\nIf you wish to remove the trivia, please contact staff.")
                   else:
                     await ctx.send("You did not confirm, and your trivia was not submitted.")
       else:
@@ -3185,7 +3185,7 @@ async def mergecards(ctx):
           }, upsert=True)
           dupecount = GetUserAttr(ctx.author.id, "card_inventory").count(card)
           embed = discord.Embed()
-          embed.description = f':shibacheer: You merged `{requiredcards}` `{tradecards.rarities[mergerarity]}` cards into one:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://. "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
+          embed.description = f'{emojis.shibacheer} You merged `{requiredcards}` `{tradecards.rarities[mergerarity]}` cards into one:\n{tradecards.rarity_emojis[cardobj["rarity"]]} [`{tradecards.rarities[cardobj["rarity"]]}` **{cardobj["name"]}**](https://. "You received this card")\n\n*{sanitize(cardobj["quote"])}*' + (f"\n\nDuplicate card! **{dupecount}x**" if duplicate else "")
           embed.set_image(url="attachment://tradecard.png")
           embed.colour = tradecards.rarity_colours[cardobj["rarity"]]
           await ctx.send(ctx.author.mention, file=LoadTradecardImage(card), embed=embed)
@@ -3862,7 +3862,7 @@ async def verify(ctx, member: discord.Member=None):
   #await ctx.message.delete()
   await member.add_roles(discord.utils.get(bot.guilds[0].roles, id=713466849148534814), discord.utils.get(bot.guilds[0].roles, id=783777725487382570))
   embed = discord.Embed()
-  embed.description = f"You have been verified and can now access the server!\nMake sure to **read the** <#857730667542741012> beforehand.\n\n3 Features Not To Miss On The Server:\n1️⃣ To find a study buddy, visit <#934841449315459183> for our automated system!\n2️⃣ For full focus, use the **distraction-free mode** of the server by running the command `mom nd` in <#713177565849845849>. Run the command again to return to full-access.\n3️⃣ Assign yourself the 🔔 newsfeed role (among many others) at <#847915130968211497>, so you don't miss out on our announcements!\n\nEnjoy your stay and good luck! :shibacheer:"
+  embed.description = f"You have been verified and can now access the server!\nMake sure to **read the** <#857730667542741012> beforehand.\n\n3 Features Not To Miss On The Server:\n1️⃣ To find a study buddy, visit <#934841449315459183> for our automated system!\n2️⃣ For full focus, use the **distraction-free mode** of the server by running the command `mom nd` in <#713177565849845849>. Run the command again to return to full-access.\n3️⃣ Assign yourself the 🔔 newsfeed role (among many others) at <#847915130968211497>, so you don't miss out on our announcements!\n\nEnjoy your stay and good luck! {emojis.shibacheer}"
   embed.colour = 0xcaa7a7
   embed.set_footer(text="When you have read this, please send a confirmation so that we can wrap this up!")
   await ctx.send(member.mention, embed=embed)
@@ -3970,7 +3970,7 @@ async def MatchStudyBuddies():
         buddy2 = await bot.fetch_user(perfect_match.get("_id"))
         studybuddiescol.delete_many({"$or": [{"_id": buddy1.id}, {"_id": buddy2.id}]})
         embed = discord.Embed()
-        embed.title = ":CS_Wiggle: Study Buddy Match :CS_Wiggle:"
+        embed.title = "{emojis.CS_wiggle} Study Buddy Match {emojis.CS_wiggle}"
         embed.description = f"Hello, {buddy1.mention} and {buddy2.mention}!\nYou two have been matched together. Please get in contact with each other!\nBoth of you have been removed from the program queue."
         embed.colour = 0x895139
         await bot.get_channel(channels.BuddyApplications).send(buddy1.mention + buddy2.mention, embed=embed)
