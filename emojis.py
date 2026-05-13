@@ -8,6 +8,8 @@ class Emojis:
     comfyblob = "<:comfyblob:1504081135234191390>"
     shibacheer = "<:shibacheer:1504081566194860174>"
     CS_wiggle = "<a:CS_wiggle:1504083872500027553>"
+    download1 = "<:woot:1504089692864512000>"
+    thisisfine = "<a:thisisfine:1504093665092571166>"
 
-
+    
 emojis = Emojis()
