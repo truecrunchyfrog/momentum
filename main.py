@@ -690,7 +690,7 @@ async def SummonTrivia(channel=829389041623105616, questions=5, delay=60):
     channel = bot.get_channel(channel)
     global playingtrivia
     if playingtrivia:
-      await channel.send(f"{emojis.download1} Tried to start a game of trivia, but there is already one right now.")
+      await channel.send(f"{emojis.woot} Tried to start a game of trivia, but there is already one right now.")
       return
     if questions > 50:
       await channel.send("Cannot start trivia with more than 50 questions.")
@@ -1115,7 +1115,7 @@ async def on_command_error(ctx, error):
     elif isinstance(error, NotAdmin):
       await ctx.send(":shibashock: Only administrators, the owner or the developer can do this.")
     elif isinstance(error, NotCasino):
-      await ctx.send(f"{emojis.download1} You must be in the casino channel to do this!\nYou may have to unlock it in the shop.")
+      await ctx.send(f"{emojis.woot} You must be in the casino channel to do this!\nYou may have to unlock it in the shop.")
     elif isinstance(error, LevelRestricted):
       await ctx.send(f":shibaplease: You need to be level **{error.rlevel}** to do this.")
     #Time string errors
@@ -1664,7 +1664,7 @@ async def help(ctx, *, showcategory=None):
           embed.description += f'\n\n❯ [`{cmdname}`](https://. "{fullcmdusage}"){"||`" + cmdusage + "`||" if len(command[0]) > 0 else ""} {command[1]}'
           embed.colour = 0x495619
       else:
-        embed.description = f"{emojis.download1} Uh, I could not find that category. Use `mom help` to see a list of categories."
+        embed.description = f"{emojis.woot} Uh, I could not find that category. Use `mom help` to see a list of categories."
         embed.colour = 0x561927
     embed.set_thumbnail(url="https://cdn.discordapp.com/avatars/802209192990605313/48a8a0c99ee7443a32a3b4b07b9693d4.png?size=256")
     await ctx.send(embed=embed)
@@ -2113,19 +2113,19 @@ async def roleshop(ctx):
 @level_restrict(3)
 async def buyrole(ctx, itemname=None):
     if itemname is None:
-      await ctx.send(f"{emojis.download1} You have to actually include a role to buy it.")
+      await ctx.send(f"{emojis.woot} You have to actually include a role to buy it.")
       return
     itemname = itemname.lower()
     if not itemname in shopitems:
-      await ctx.send(f"{emojis.download1} That role does not exist in the role shop, please view the shop to see what we have.")
+      await ctx.send(f"{emojis.woot} That role does not exist in the role shop, please view the shop to see what we have.")
       return
     item = shopitems[itemname]
     itemrole = discord.utils.get(bot.guilds[0].roles, id=item[2])
     if itemrole in ctx.author.roles:
-      await ctx.send(f"{emojis.download1} You already have this! You cannot buy it.")
+      await ctx.send(f"{emojis.woot} You already have this! You cannot buy it.")
       return
     if GetUserCoins(ctx.author.id) < item[0]:
-      await ctx.send(f"{emojis.download1} You don't have enough coins to buy this!")
+      await ctx.send(f"{emojis.woot} You don't have enough coins to buy this!")
       return
     await AddExperience(ctx, ctx.author.id, 300)
     TakeUserCoins(ctx.author.id, item[0])
@@ -2328,20 +2328,20 @@ def StringToTime(timestr):
 @bot.command(aliases=["addgoal", "makegoal", "creategoal", "newgoal"])
 async def setgoal(ctx, *, ftime=None):
     if (GetUserAttr(ctx.author.id, "dailygoal") or [0, 0, 0])[2] == math.floor(time.time() / 24 / 60 / 60):
-      await ctx.send(f"{emojis.download1} You already have a goal for today. Type `mom mygoal` for more information.")
+      await ctx.send(f"{emojis.woot} You already have a goal for today. Type `mom mygoal` for more information.")
       return
     if ftime is None:
-      await ctx.send(f"{emojis.download1} You must provide a time amount to set todays goal to.\nExample: `2h 30m`")
+      await ctx.send(f"{emojis.woot} You must provide a time amount to set todays goal to.\nExample: `2h 30m`")
       return
     totaltime = StringToTime(ftime)
     if totaltime < 5 * 60:
-      await ctx.send(f"{emojis.download1} Your goal must be at least 5 minutes.")
+      await ctx.send(f"{emojis.woot} Your goal must be at least 5 minutes.")
       return
     if totaltime > 20 * 60 * 60:
-      await ctx.send(f"{emojis.download1} What are you doing??\nDon't put your goal that high, max 20 hours.")
+      await ctx.send(f"{emojis.woot} What are you doing??\nDon't put your goal that high, max 20 hours.")
       return
     if (time.time() + totaltime + (30 * 60)) > int((time.time() / (24 * 60 * 60)) + 1) * 24 * 60 * 60:
-      await ctx.send(f"{emojis.download1} Oops! I'm sorry, but if you would start studying now until you reach the goal, you would finish later than 23:30 in UTC+0 which is 30 minutes before goal reset. Therefore you cannot set that goal at the moment.")
+      await ctx.send(f"{emojis.woot} Oops! I'm sorry, but if you would start studying now until you reach the goal, you would finish later than 23:30 in UTC+0 which is 30 minutes before goal reset. Therefore you cannot set that goal at the moment.")
       return
     if totaltime >= 4 * 60 * 60:
       await NewPrestige(ctx.author.id, "planner")
@@ -2465,7 +2465,7 @@ async def daily(ctx):
     dailyclaim = GetUserAttr(ctx.author.id, "dailyclaim") or 0
     todayint = int(time.time() / 60 / 60 / 24)
     if dailyclaim == todayint:
-      await ctx.send(f"{emojis.download1} You have already claimed your daily reward!\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
+      await ctx.send(f"{emojis.woot} You have already claimed your daily reward!\nYou can claim it again in **{GetTimeString(((todayint + 1) * 60 * 60 * 24) - time.time())}**.")
       return
     SetUserAttr(ctx.author.id, "dailyclaim", todayint)
     earncoins = 150
