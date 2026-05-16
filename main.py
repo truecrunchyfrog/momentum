@@ -1508,7 +1508,7 @@ async def stats(ctx, user: discord.Member=None):
     prog = lvlinfo["progress"]
     req = lvlinfo["required"]
     rem = lvlinfo["remaining"]
-    embed.add_field(name="{emojis.bigbrain} Experience", value=f"[{prog:,d}" + " / " + f"{req:,d}](https://. \"{rem:,d} left\")" + " (" + str(lvlinfo["progresspercent"]) + "%)")
+    embed.add_field(name=f"{emojis.bigbrain} Experience", value=f"[{prog:,d}" + " / " + f"{req:,d}](https://. \"{rem:,d} left\")" + " (" + str(lvlinfo["progresspercent"]) + "%)")
 
     #embed.add_field(name=":beaver_2: Bump contributions", value=f'{GetUserAttr(user.id, "bump_count") or "No contributions yet!"}')
 
@@ -1516,7 +1516,7 @@ async def stats(ctx, user: discord.Member=None):
       embed.add_field(name=":pandalove: Donated", value="Thank you for your donation.")
     
     cardcount = len(GetUserAttr(user.id, "card_inventory") or [])
-    embed.add_field(name="{emojis.cards} Trade cards", value=cardcount if cardcount > 0 else "No trade cards yet!")
+    embed.add_field(name=f"{emojis.cards} Trade cards", value=cardcount if cardcount > 0 else "No trade cards yet!")
 
     embed.description = "**[`  " + (" " * 11) + str(lvlinfo["level"]) + (" " * (11 - len(str(lvlinfo["level"])))) + "  `](https://. \"Level\")**\n"
     BAR_ON = ":_:"
@@ -1987,7 +1987,7 @@ async def hangman(ctx):
           usedcharsgood.append(char)
           await AddExperience(ctx, ctx.author.id, 40)
           #res = await ctx.send(embed=discord.Embed(
-          #  title="{emojis.shibacheer} Good letter",
+          #  title=f"{emojis.shibacheer} Good letter",
           #  colour=discord.Colour.green()
           #))
         else:
@@ -2782,7 +2782,7 @@ async def makequestion(ctx):
                     })
                     LoadTriviaQuestions()
                     await AddExperience(ctx, ctx.author.id, 350)
-                    await ctx.send("{emojis.shibacheer} **Trivia submitted!**\nYour trivia has been added and is playable.\nIf you wish to remove the trivia, please contact staff.")
+                    await ctx.send(f"{emojis.shibacheer} **Trivia submitted!**\nYour trivia has been added and is playable.\nIf you wish to remove the trivia, please contact staff.")
                   else:
                     await ctx.send("You did not confirm, and your trivia was not submitted.")
       else:
@@ -3970,7 +3970,7 @@ async def MatchStudyBuddies():
         buddy2 = await bot.fetch_user(perfect_match.get("_id"))
         studybuddiescol.delete_many({"$or": [{"_id": buddy1.id}, {"_id": buddy2.id}]})
         embed = discord.Embed()
-        embed.title = "{emojis.CS_wiggle} Study Buddy Match {emojis.CS_wiggle}"
+        embed.title = f"{emojis.CS_wiggle} Study Buddy Match {emojis.CS_wiggle}"
         embed.description = f"Hello, {buddy1.mention} and {buddy2.mention}!\nYou two have been matched together. Please get in contact with each other!\nBoth of you have been removed from the program queue."
         embed.colour = 0x895139
         await bot.get_channel(channels.BuddyApplications).send(buddy1.mention + buddy2.mention, embed=embed)
