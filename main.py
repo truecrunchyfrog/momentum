@@ -607,7 +607,7 @@ async def CheckMonthlyLeaderboardReset(force=False):
       embed = discord.Embed()
       embed.title = ":book: Monthly Reset"
       #embed.description = f"A new month is here and it's time to reset the leaderboard!\n**Congratulations winners!**\nThese people studied the best last month:\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n\nThe winner has received 1 month of gold membership and coins. The 2nd and 3rd leaders earned some coins.\n\nMaybe this month is your chance to study well? Good luck people!\n[Click here]({slmsg.jump_url}) to see the archived first leaderboard page."
-      embed.description = f"✨ A new month is here, so it's time to congratulate the following three who have topped our leaderboard last month and to continue the succession of the throne! {emojis.kingcat} Thank you for inspiring us this month with your hard work!\n\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n🎉 All hail the new monthly leader {n1mem.mention}! The coin rewards have already been deposited into the accounts of the top 3! {emojis.I_got_money}\n\nGood job as well to ALL frogs this month for the work done :catpats:\nAll the best for the next month, we are looking forward to your company!! {emojis.comfyblob}\n\nAlso, [click here]({slmsg.jump_url}) to see the full first leaderboard page."
+      embed.description = f"✨ A new month is here, so it's time to congratulate the following three who have topped our leaderboard last month and to continue the succession of the throne! {emojis.kingcat} Thank you for inspiring us this month with your hard work!\n\n1st: {n1mem.mention}\n2nd: {n2mem.mention}\n3rd: {n3mem.mention}\n🎉 All hail the new monthly leader {n1mem.mention}! The coin rewards have already been deposited into the accounts of the top 3! {emojis.moneywave}\n\nGood job as well to ALL frogs this month for the work done :catpats:\nAll the best for the next month, we are looking forward to your company!! {emojis.comfyblob}\n\nAlso, [click here]({slmsg.jump_url}) to see the full first leaderboard page."
       embed.colour = 0xaa763f
 
       newsfeedrole = discord.utils.get(bot.guilds[0].roles, id=844605574032916512)
@@ -808,7 +808,7 @@ async def CollectTaxes():
         TakeUserCoins(taxpayer["_id"], takecoins)
       print("All members with >8k coins have automatically paid taxes, 20% of their full coin amount.")
       await bot.get_channel(channels.General).send(embed=discord.Embed(
-        description=f":cat_cry_thumbsup: It's time for taxes!\nCollected `{totalcoinstaken:,d} coins` in total. ([?](https://discord.com/channels/712808127539707927/713177565849845849/801373465546457138 \"Click to see more information about taxes\"))",
+        description=f"{emojis.cat_cry_thumbsup} It's time for taxes!\nCollected `{totalcoinstaken:,d} coins` in total. ([?](https://discord.com/channels/712808127539707927/713177565849845849/801373465546457138 \"Click to see more information about taxes\"))",
         colour=discord.Colour.orange()
       ))
 
@@ -1375,7 +1375,7 @@ async def StopStudying(member_id, simulated=False, simulator=0):
     try:
       if not smmode is False:
         embed = discord.Embed()
-        embed.description = f"{emojis.greatwork} Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n{emojis.greatwork} [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens :book:" if not NoTokens(member.id) else "") + f"\n\n{emojis.greatwork} [`+{earncoins:,d}`](https://. \"Earned coins\") coins {emojis.famcoin2}" + ("\n\n{emojis.greatwork} Camera/screenshare bonus!" if used_cam else "") + (f"\n\n{emojis.greatwork} :beaver_2: Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n{emojis.greatwork} Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n{emojis.greatwork} {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n:WokePepe: Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + ("\n\n{emojis.greatwork} You got closer to your study goal" if hasgoal else "")
+        embed.description = f"{emojis.greatwork} Studied for `{GetTimeString(studytime_elapsed)}`" + (f"\n\n{emojis.greatwork} [`+{earnstudytokens:,d}`](https://. \"Earned study tokens\") study tokens :book:" if not NoTokens(member.id) else "") + f"\n\n{emojis.greatwork} [`+{earncoins:,d}`](https://. \"Earned coins\") coins {emojis.famcoin2}" + (f"\n\n{emojis.greatwork} Camera/screenshare bonus!" if used_cam else "") + (f"\n\n{emojis.greatwork} :beaver_2: Woo! You climbed the leaderboard: [`{before_rank}`](https://. \"Your previous rank\") **➝** [`{after_rank}`](https://. \"Your current rank\")" if before_rank != after_rank else (f"\n\n{emojis.greatwork} Your leaderboard rank is [`{after_rank}`](https://. \"Your rank\")" if not NoTokens(member.id) else "")) + (f"\n\n{emojis.greatwork} {new_relations} new relation(s) created (AARSBIMS)" if new_relations > 0 else "") + (f"\n\n:WokePepe: Oh no! You studied for `{GetTimeString(actual_studytime_elapsed)}` which exceeds the study session limit of 6 hours. Your earnings and study time was shortened to the limit instead of how long time you actually spent in there." if limitreached else "") + (f"\n\n{emojis.greatwork} You got closer to your study goal" if hasgoal else "")
         embed.colour = 0x36393f#0x67356b
         randomquote = random.choice([
           "I hope you will appreciate your return.",
@@ -1508,7 +1508,7 @@ async def stats(ctx, user: discord.Member=None):
     prog = lvlinfo["progress"]
     req = lvlinfo["required"]
     rem = lvlinfo["remaining"]
-    embed.add_field(name=":4813bigbrain: Experience", value=f"[{prog:,d}" + " / " + f"{req:,d}](https://. \"{rem:,d} left\")" + " (" + str(lvlinfo["progresspercent"]) + "%)")
+    embed.add_field(name="{emojis.bigbrain} Experience", value=f"[{prog:,d}" + " / " + f"{req:,d}](https://. \"{rem:,d} left\")" + " (" + str(lvlinfo["progresspercent"]) + "%)")
 
     #embed.add_field(name=":beaver_2: Bump contributions", value=f'{GetUserAttr(user.id, "bump_count") or "No contributions yet!"}')
 
@@ -1516,7 +1516,7 @@ async def stats(ctx, user: discord.Member=None):
       embed.add_field(name=":pandalove: Donated", value="Thank you for your donation.")
     
     cardcount = len(GetUserAttr(user.id, "card_inventory") or [])
-    embed.add_field(name=":crunchys: Trade cards", value=cardcount if cardcount > 0 else "No trade cards yet!")
+    embed.add_field(name="{emojis.cards} Trade cards", value=cardcount if cardcount > 0 else "No trade cards yet!")
 
     embed.description = "**[`  " + (" " * 11) + str(lvlinfo["level"]) + (" " * (11 - len(str(lvlinfo["level"])))) + "  `](https://. \"Level\")**\n"
     BAR_ON = ":_:"
