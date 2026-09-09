@@ -10,11 +10,12 @@ Copyright crunchyfrog (https://github.com/javaveryhot) Dec 2020 - June 2023
 '''
 
 
-import os, pymongo, time, datetime, asyncio, random, math, requests, sys, hashlib, flag, re
+import os, pymongo, time, datetime, asyncio, random, math, requests, sys, hashlib, flag, re, threading
 import discord
 from discord.ext import commands
 from helpmenu import helpmenu
 from shopitems import shopitems
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import tradecards
 import hangman as ohangman
 from robways import robways
@@ -4197,10 +4198,18 @@ async def focus(ctx):
 async def energy(ctx):
   await ctx.reply("https://media.giphy.com/media/UW8VVu5c2OBUy43cos/giphy.gif")
 
+class HealthHandler(BaseHTTPRequestHandler):
+  def do_GET(self):
+    self.send_response(200)
+    self.end_headers()
+    self.wfile.write(b"OK")
 
-try:
-  bot.run(os.getenv("DISCORD_TOKEN"))
-except discord.errors.HTTPException:
-  print("REBOOTING...")
-  time.sleep(5)
-  os.system("busybox reboot")
+  def log_message(self, format, *args):
+    pass
+
+def run_web_server():
+  server = HTTPServer(("0.0.0.0", os.getenv("PORT")), HealthHandler)
+  server.serve_forever()
+
+threading.Thread(target=run_web_server, daemon=True).start()
+bot.run(os.getenv("DISCORD_TOKEN"))
