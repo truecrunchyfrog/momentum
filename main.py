@@ -4199,7 +4199,7 @@ async def energy(ctx):
   await ctx.reply("https://media.giphy.com/media/UW8VVu5c2OBUy43cos/giphy.gif")
 
 class HealthHandler(BaseHTTPRequestHandler):
-  def do_GET(self):
+  def do_HEAD(self):
     self.send_response(200)
     self.end_headers()
     self.wfile.write(b"OK")
