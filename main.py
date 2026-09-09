@@ -4208,7 +4208,7 @@ class HealthHandler(BaseHTTPRequestHandler):
     pass
 
 def run_web_server():
-  server = HTTPServer(("0.0.0.0", os.getenv("PORT")), HealthHandler)
+  server = HTTPServer(("0.0.0.0", int(os.getenv("PORT"))), HealthHandler)
   server.serve_forever()
 
 threading.Thread(target=run_web_server, daemon=True).start()
